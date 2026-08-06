@@ -645,7 +645,7 @@ const setScore = (id,who,v) => {
   if (cleared) delete S.scores[id][who];   // click same pip to clear
   else S.scores[id][who] = v;
   if (Object.keys(S.scores[id]).length) S.watched[id] = true;
-  save(); render();
+  save(); applyEdit(id);
   push(cleared ? {t:"score", id, who, v:null} : {t:"score", id, who, v});
 };
 const combo = id => {
@@ -728,7 +728,7 @@ function cardHTML(f, idx){
   };
 
   return `
-  <article class="card${w?" watched":""}" style="--pc:${GROUPS[f.g].color}">
+  <article class="card${w?" watched":""}" data-card="${f.id}" style="--pc:${GROUPS[f.g].color}">
     <div class="poster">
       <div class="pfall">${esc(f.t)}</div>
       <img src="posters/${f.id}.webp" alt="${esc(f.t)} poster" decoding="async"
@@ -762,12 +762,12 @@ function cardHTML(f, idx){
 
     <div class="cfoot">
       <div class="scores">
-        <div class="srow">
+        <div class="srow" data-who="a">
           <div class="sname" style="color:var(--a)">${esc(S.names.a)}</div>
           <div class="pips">${pips("a")}</div>
           <div class="sval" style="${a!=null?`color:${scoreColor(a)}`:""}">${a??"-"}</div>
         </div>
-        <div class="srow">
+        <div class="srow" data-who="b">
           <div class="sname" style="color:var(--b)">${esc(S.names.b)}</div>
           <div class="pips">${pips("b")}</div>
           <div class="sval" style="${b!=null?`color:${scoreColor(b)}`:""}">${b??"-"}</div>
@@ -790,8 +790,8 @@ function renderMovies(){
   // index numbers always reflect the active ordering across ALL films
   const posMap = new Map(sortedFilms().map((f,i)=>[f.id,i+1]));
 
-  const section = (color, title, note, films) => `
-      <div class="phase-head">
+  const section = (color, title, note, films, gid) => `
+      <div class="phase-head"${gid?` data-g="${gid}"`:""}>
         <div class="bar" style="background:${color}"></div>
         <h2>${title}</h2>
         <div class="meta">${note}</div>
@@ -824,7 +824,7 @@ function renderMovies(){
     if (!inGroup.length) continue;
     const all  = FILMS.filter(f=>f.g===gid);
     const done = all.filter(f=>S.watched[f.id]).length;
-    out += section(GROUPS[gid].color, GROUPS[gid].name, `${done}/${all.length} watched`, inGroup);
+    out += section(GROUPS[gid].color, GROUPS[gid].name, `${done}/${all.length} watched`, inGroup, gid);
   }
   el.innerHTML = out;
 }
@@ -940,6 +940,84 @@ function renderStats(){
   el.innerHTML = html;
 }
 
+/* Rebuilding every card on each click also rebuilt all 84 <img> elements, and
+   a fresh <img> has to decode again even when the bytes are cached, which
+   showed up as posters flickering. Touch only what changed instead. */
+function updateCard(id){
+  const f = FILMS.find(x => x.id === id);
+  const card = document.querySelector(`.card[data-card="${id}"]`);
+  if (!f || !card) return false;
+
+  const w = !!S.watched[id], c = combo(id);
+  const a = getScore(id,"a"), b = getScore(id,"b");
+
+  card.classList.toggle("watched", w);
+
+  const poster = card.querySelector(".poster");
+  let badge = poster.querySelector(".pbadge");
+  if (w && !badge){
+    badge = document.createElement("div");
+    badge.className = "pbadge"; badge.title = "Watched"; badge.textContent = "✓";
+    poster.appendChild(badge);
+  } else if (!w && badge){
+    badge.remove();
+  }
+
+  const combined = card.querySelector(".combo");
+  combined.classList.toggle("empty", c == null);
+  const cb = combined.querySelector("b");
+  cb.textContent = c == null ? "-" : fmt1(c);
+  cb.style.color = c != null ? scoreColor(c) : "";
+
+  const wbtn = card.querySelector(".wbtn");
+  wbtn.classList.toggle("on", w);
+  wbtn.innerHTML = `<span class="chk">${w?"✓":""}</span>${w?"Watched":"Mark watched"}`;
+
+  for (const who of ["a","b"]){
+    const v = getScore(id, who);
+    card.querySelectorAll(`.pip[data-who="${who}"]`).forEach(pip => {
+      const n = +pip.dataset.v, on = v != null && n <= v;
+      pip.classList.toggle("fill", on);
+      pip.classList.toggle("cur", v === n);
+      pip.style.background = on ? scoreColor(v) : "";
+    });
+    const sval = card.querySelector(`.srow[data-who="${who}"] .sval`);
+    if (sval){
+      sval.textContent = v ?? "-";
+      sval.style.color = v != null ? scoreColor(v) : "";
+    }
+  }
+
+  const gap = (a != null && b != null) ? Math.abs(a-b) : null;
+  const diff = card.querySelector(".diff");
+  diff.classList.toggle("hidden", gap == null || gap < 3);
+  if (gap != null){
+    diff.textContent = `⚡ ${gap} points apart. ${gap>=6?"Take it outside.":"Debate required."}`;
+  }
+  return true;
+}
+
+/* section headings carry a watched tally that a single edit can change */
+function updateGroupCounts(){
+  document.querySelectorAll(".phase-head[data-g]").forEach(head => {
+    const gid = head.dataset.g;
+    const all = FILMS.filter(x => x.g === gid);
+    const done = all.filter(x => S.watched[x.id]).length;
+    head.querySelector(".meta").textContent = `${done}/${all.length} watched`;
+  });
+}
+
+/* Full render only when the edit changes which cards belong on screen. */
+function applyEdit(id){
+  const f = FILMS.find(x => x.id === id);
+  const stillListed = VIEW === "movies" && f && passFilter(f) &&
+                      (S.universe === "all" || uOf(f) === S.universe) &&
+                      (S.format === "all" || (S.format === "series") === isSeries(f));
+  if (!stillListed || !updateCard(id)){ render(); return; }
+  renderHeader();
+  updateGroupCounts();
+}
+
 function renderHeader(){
   const pool = activeFilms();
   const watched = pool.filter(f=>S.watched[f.id]);
@@ -1005,7 +1083,7 @@ document.addEventListener("click", e => {
   if (wb){
     const id = wb.dataset.watch;
     S.watched[id] = !S.watched[id];
-    save(); render();
+    save(); applyEdit(id);
     push({t:"watch", id, v: !!S.watched[id]});
     return;
   }
