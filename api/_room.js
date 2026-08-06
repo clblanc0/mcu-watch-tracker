@@ -1,7 +1,7 @@
 /**
  * Room storage shape. Everything lives in three Redis hashes per room:
  *
- *   room:<code>:meta     a -> name, b -> name, created -> iso date
+ *   room:<code>:meta     a/b -> name, ca/cb -> colour, created -> iso date
  *   room:<code>:scores   "<titleId>.<a|b>" -> "1".."10"
  *   room:<code>:watched  "<titleId>" -> "1"
  *
@@ -42,7 +42,18 @@ const keys = (code) => ({
 });
 
 const TITLE_ID = /^[a-z0-9]{1,12}$/;
+
+/** Scores run 1.0 to 10.0 in tenths. Stored as strings, so parse and re-check. */
+function cleanScore(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1 || n > 10) return null;
+  const tenths = Math.round(n * 10);
+  return tenths / 10;
+}
 const clampName = (v) => String(v == null ? "" : v).slice(0, 12);
+const HEX = /^#[0-9a-f]{6}$/i;
+const cleanColour = (v) => (typeof v === "string" && HEX.test(v) ? v.toLowerCase() : null);
+const DEFAULT_COLOURS = { a: "#6ee7ff", b: "#ff87c3" };
 
 async function load(code) {
   const k = keys(code);
@@ -56,7 +67,12 @@ async function load(code) {
   if (!metaObj.created) return null; // no such room
 
   const scoreObj = kv.pairsToObject(scores);
-  const out = { names: { a: metaObj.a || "Me", b: metaObj.b || "Her" }, scores: {}, watched: {} };
+  const out = {
+    names:  { a: metaObj.a || "Me", b: metaObj.b || "Her" },
+    colors: { a: cleanColour(metaObj.ca) || DEFAULT_COLOURS.a,
+              b: cleanColour(metaObj.cb) || DEFAULT_COLOURS.b },
+    scores: {}, watched: {},
+  };
 
   for (const [field, value] of Object.entries(scoreObj)) {
     const dot = field.lastIndexOf(".");
@@ -64,8 +80,8 @@ async function load(code) {
     const id = field.slice(0, dot);
     const who = field.slice(dot + 1);
     if (who !== "a" && who !== "b") continue;
-    const n = Number(value);
-    if (!Number.isInteger(n) || n < 1 || n > 10) continue;
+    const n = cleanScore(value);
+    if (n === null) continue;
     (out.scores[id] = out.scores[id] || {})[who] = n;
   }
   for (const id of Object.keys(kv.pairsToObject(watched))) out.watched[id] = true;
@@ -83,8 +99,8 @@ function commandsFor(code, op) {
     if (op.who !== "a" && op.who !== "b") return null;
     const field = `${op.id}.${op.who}`;
     if (op.v === null) return [["HDEL", k.scores, field]];
-    const n = Number(op.v);
-    if (!Number.isInteger(n) || n < 1 || n > 10) return null;
+    const n = cleanScore(op.v);
+    if (n === null) return null;
     // scoring something implies you watched it
     return [
       ["HSET", k.scores, field, String(n)],
@@ -104,6 +120,13 @@ function commandsFor(code, op) {
     return [["HSET", k.meta, op.who, clampName(op.v)]];
   }
 
+  if (op.t === "color") {
+    if (op.who !== "a" && op.who !== "b") return null;
+    const hex = cleanColour(op.v);
+    if (!hex) return null;
+    return [["HSET", k.meta, op.who === "a" ? "ca" : "cb", hex]];
+  }
+
   if (op.t === "reset") {
     return [["DEL", k.scores], ["DEL", k.watched]];
   }
@@ -117,6 +140,8 @@ function seedCommands(code, state) {
   const cmds = [
     ["HSET", k.meta, "a", clampName(state?.names?.a || "Me"),
       "b", clampName(state?.names?.b || "Her"),
+      "ca", cleanColour(state?.colors?.a) || DEFAULT_COLOURS.a,
+      "cb", cleanColour(state?.colors?.b) || DEFAULT_COLOURS.b,
       "created", new Date().toISOString()],
   ];
 
@@ -125,8 +150,8 @@ function seedCommands(code, state) {
   for (const [id, pair] of Object.entries(scores).slice(0, 500)) {
     if (!TITLE_ID.test(id) || !pair || typeof pair !== "object") continue;
     for (const who of ["a", "b"]) {
-      const n = Number(pair[who]);
-      if (Number.isInteger(n) && n >= 1 && n <= 10) scoreArgs.push(`${id}.${who}`, String(n));
+      const n = cleanScore(pair[who]);
+      if (n !== null) scoreArgs.push(`${id}.${who}`, String(n));
     }
   }
   if (scoreArgs.length) cmds.push(["HSET", k.scores, ...scoreArgs]);

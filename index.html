@@ -109,7 +109,14 @@
     display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
     border-radius:99px;padding:6px 13px 6px 10px;
   }
-  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .namepill .swatch{
+    width:16px;height:16px;flex:none;padding:0;cursor:pointer;
+    border:1px solid var(--line-2);border-radius:50%;background:none;
+    -webkit-appearance:none;appearance:none;
+  }
+  .swatch::-webkit-color-swatch-wrapper{padding:0}
+  .swatch::-webkit-color-swatch{border:none;border-radius:50%}
+  .swatch::-moz-color-swatch{border:none;border-radius:50%}
   .namepill input{
     background:transparent;border:0;color:var(--txt);font:inherit;font-weight:700;font-size:13px;
     width:78px;outline:none;padding:0;
@@ -259,23 +266,49 @@
     font-size:11.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     letter-spacing:.02em;
   }
-  .pips{order:3;flex:1 1 100%;display:flex;gap:4px}
-  .pip{
-    flex:1;height:30px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);
-    cursor:pointer;padding:0;transition:.1s;font-size:11px;font-weight:800;color:transparent;
+  .track-wrap{order:3;flex:1 1 100%;display:flex;align-items:center;gap:10px}
+
+  /* one range input per person, in tenths */
+  .slider{
+    flex:1;min-width:0;-webkit-appearance:none;appearance:none;
+    background:transparent;height:28px;margin:0;padding:0;cursor:pointer;
   }
-  .pip:hover{transform:scaleY(1.18);border-color:var(--line-2)}
-  .pip.fill{border-color:transparent}
-  .pip.cur{color:#06121a;box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px currentColor}
-  /* touch devices get no usable hover state, and it sticks after a tap */
-  @media(hover:none){
-    .pip:hover{transform:none;border-color:var(--line)}
-    .pip.fill:hover{border-color:transparent}
+  .slider::-webkit-slider-runnable-track{
+    height:10px;border-radius:99px;border:1px solid var(--line);
+    background:linear-gradient(90deg,var(--sc) var(--fill),var(--panel-2) var(--fill));
   }
-  .sval{
-    order:2;flex:none;min-width:18px;text-align:right;
-    font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--dimmer);
+  .slider::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:22px;height:22px;border-radius:50%;margin-top:-7px;
+    background:#f6f8ff;border:2.5px solid var(--sc);
+    box-shadow:0 2px 6px rgba(0,0,0,.55);transition:transform .1s;
   }
+  .slider::-moz-range-track{
+    height:10px;border-radius:99px;border:1px solid var(--line);
+    background:linear-gradient(90deg,var(--sc) var(--fill),var(--panel-2) var(--fill));
+  }
+  .slider::-moz-range-thumb{
+    width:20px;height:20px;border-radius:50%;
+    background:#f6f8ff;border:2.5px solid var(--sc);
+    box-shadow:0 2px 6px rgba(0,0,0,.55);
+  }
+  .slider:active::-webkit-slider-thumb{transform:scale(1.15)}
+  .slider:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:99px}
+
+  /* nothing scored yet: keep the handle visible but clearly inert */
+  .srow.unrated .slider{--sc:var(--line-2)}
+  .srow.unrated .slider::-webkit-slider-thumb{background:var(--panel-2);border-color:var(--line-2)}
+  .srow.unrated .slider::-moz-range-thumb{background:var(--panel-2);border-color:var(--line-2)}
+  .srow.unrated .sval{color:var(--dimmer)}
+  .srow.unrated .clr{visibility:hidden}
+
+  .clr{
+    flex:none;width:26px;height:26px;border-radius:50%;padding:0;line-height:1;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--dim);
+    font-size:16px;font-weight:700;cursor:pointer;transition:.15s;
+  }
+  .clr:hover{border-color:var(--line-2);color:var(--txt)}
+
   .diff{
     margin:9px 0 0;font-size:11px;font-weight:700;color:var(--gold);
     display:flex;align-items:center;gap:6px;
@@ -343,7 +376,7 @@
                           "foot   foot";
       /* measured median on a 375px viewport; a low guess here makes the page
          grow as you scroll, which reads as the scroll position jumping */
-      contain-intrinsic-size:auto 460px;
+      contain-intrinsic-size:auto 362px;
     }
     .poster{width:93px}
     .num{display:none}                       /* the list order is obvious enough */
@@ -351,18 +384,13 @@
     .cbody{padding:14px 13px 13px 12px}
     .cfoot{padding:2px 14px 14px 14px}
 
-    /* five per row at full card width, at the usual 44px touch-target floor */
-    .scores{gap:13px;margin-top:0}
+    .scores{gap:15px;margin-top:0}
     .srow{gap:6px}
     .sname{font-size:12px}
-    .pips{flex-wrap:wrap;gap:6px}
-    .pip{
-      flex:0 0 calc(20% - 4.8px);
-      height:44px;border-radius:9px;font-size:13.5px;
-      color:var(--dim);            /* show the numbers, they are tappable targets */
-    }
-    .pip.fill{color:rgba(0,0,0,.62)}
-    .pip.cur{color:#06121a}
+    .slider{height:34px}                       /* taller grab area for a thumb */
+    .slider::-webkit-slider-thumb{width:26px;height:26px;margin-top:-9px}
+    .slider::-moz-range-thumb{width:24px;height:24px}
+    .clr{width:30px;height:30px}
     .wbtn{padding:9px 15px;font-size:13px}
     .lbrow{grid-template-columns:26px 32px 1fr auto;gap:10px}
     .lbposter{width:32px;height:47px}
@@ -403,8 +431,8 @@
       <button class="tab" data-view="stats">Stats</button>
     </div>
     <div class="names">
-      <label class="namepill"><span class="dot" style="background:var(--a)"></span><input id="nameA" class="nameinput" maxlength="12" spellcheck="false"></label>
-      <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
+      <label class="namepill"><input type="color" class="swatch" id="colorA" title="Pick a colour"><input id="nameA" class="nameinput" maxlength="12" spellcheck="false"></label>
+      <label class="namepill"><input type="color" class="swatch" id="colorB" title="Pick a colour"><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
     </div>
     <button class="syncpill" id="syncPill" hidden><i></i><span></span><b class="caret">›</b></button>
     <button class="ctrl shareBtn" id="shareBtn">Share</button>
@@ -610,7 +638,9 @@ const DOOMSDAY = new Date(2026, 11, 18); // Dec 18, 2026
    STATE
    ============================================================ */
 const KEY = "mcu-doomsday-tracker-v1";
-const blank = () => ({ names:{a:"Me", b:"Her"}, scores:{}, watched:{}, order:"release", filter:"all", universe:"all", format:"all" });
+const DEFAULT_COLORS = {a:"#6ee7ff", b:"#ff87c3"};
+const blank = () => ({ names:{a:"Me", b:"Her"}, colors:{...DEFAULT_COLORS}, scores:{}, watched:{},
+                       order:"release", filter:"all", universe:"all", format:"all" });
 
 /* ---------- shared board ----------
    With no room in the URL this behaves exactly as before: everything lives in
@@ -627,6 +657,7 @@ let S;
 try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(cacheKey()) || "{}")); }
 catch(e){ S = blank(); }
 S.names  = Object.assign({a:"Me",b:"Her"}, S.names||{});
+S.colors = Object.assign({...DEFAULT_COLORS}, S.colors||{});
 S.scores = S.scores||{}; S.watched = S.watched||{}; S.universe = S.universe||"all"; S.format = S.format||"all";
 
 /* localStorage is the source of truth when local, a fast-paint cache when shared */
@@ -665,14 +696,23 @@ async function flush(){
 }
 
 const getScore = (id,who) => (S.scores[id]||{})[who] ?? null;
-const setScore = (id,who,v) => {
-  S.scores[id] = S.scores[id]||{};
-  const cleared = S.scores[id][who] === v;
-  if (cleared) delete S.scores[id][who];   // click same pip to clear
-  else S.scores[id][who] = v;
+const SCORE_MIN = 1, SCORE_MAX = 10;
+const roundTenth = v => Math.round(v*10)/10;
+const fillPct = v => v==null ? 0 : ((v-SCORE_MIN)/(SCORE_MAX-SCORE_MIN))*100;
+const applyColors = () => {
+  document.documentElement.style.setProperty("--a", S.colors.a);
+  document.documentElement.style.setProperty("--b", S.colors.b);
+};
+/* `v` is a number in tenths, or null to clear. `quiet` skips the server op so a
+   drag can update locally on every frame and send once on release. */
+const setScore = (id, who, v, quiet) => {
+  S.scores[id] = S.scores[id] || {};
+  if (v === null) delete S.scores[id][who];
+  else S.scores[id][who] = roundTenth(v);
   if (Object.keys(S.scores[id]).length) S.watched[id] = true;
-  save(); applyEdit(id);
-  push(cleared ? {t:"score", id, who, v:null} : {t:"score", id, who, v});
+  save();
+  applyEdit(id);
+  if (!quiet) push({t:"score", id, who, v: v === null ? null : roundTenth(v)});
 };
 const combo = id => {
   const a = getScore(id,"a"), b = getScore(id,"b");
@@ -739,18 +779,21 @@ function cardHTML(f, idx){
   const a = getScore(f.id,"a"), b = getScore(f.id,"b");
   const gap = (a!=null && b!=null) ? Math.abs(a-b) : null;
 
-  const pips = who => {
+  const scoreRow = who => {
     const v = getScore(f.id, who);
-    let out = "";
-    for (let i=1;i<=10;i++){
-      const on = v!=null && i<=v;
-      const cur = v===i;
-      const bg = on ? scoreColor(v) : "";
-      out += `<button class="pip${on?" fill":""}${cur?" cur":""}" data-id="${f.id}" data-who="${who}" data-v="${i}"
-               style="${on?`background:${bg}`:""}"
-               aria-label="${i} out of 10" title="${i}/10">${i}</button>`;
-    }
-    return out;
+    return `
+        <div class="srow${v==null?" unrated":""}" data-who="${who}">
+          <div class="sname" style="color:var(--${who})">${esc(S.names[who])}</div>
+          <div class="sval" style="${v==null?"":`color:${scoreColor(v)}`}">${v==null?"-":fmt1(v)}</div>
+          <div class="track-wrap">
+            <input type="range" class="slider" min="${SCORE_MIN}" max="${SCORE_MAX}" step="0.1"
+                   value="${v ?? (SCORE_MIN+SCORE_MAX)/2}"
+                   data-id="${f.id}" data-who="${who}"
+                   aria-label="${esc(S.names[who])} score for ${esc(f.t)}"
+                   style="--fill:${fillPct(v)}%;--sc:var(--${who})">
+            <button class="clr" data-clr="${f.id}" data-who="${who}" title="Clear this score">&times;</button>
+          </div>
+        </div>`;
   };
 
   return `
@@ -787,18 +830,7 @@ function cardHTML(f, idx){
     </div>
 
     <div class="cfoot">
-      <div class="scores">
-        <div class="srow" data-who="a">
-          <div class="sname" style="color:var(--a)">${esc(S.names.a)}</div>
-          <div class="pips">${pips("a")}</div>
-          <div class="sval" style="${a!=null?`color:${scoreColor(a)}`:""}">${a??"-"}</div>
-        </div>
-        <div class="srow" data-who="b">
-          <div class="sname" style="color:var(--b)">${esc(S.names.b)}</div>
-          <div class="pips">${pips("b")}</div>
-          <div class="sval" style="${b!=null?`color:${scoreColor(b)}`:""}">${b??"-"}</div>
-        </div>
-      </div>
+      <div class="scores">${scoreRow("a")}${scoreRow("b")}</div>
 
       <div class="diff${gap==null||gap<3?" hidden":""}">
         ⚡ ${gap} points apart. ${gap>=6?"Take it outside.":"Debate required."}
@@ -1001,17 +1033,17 @@ function updateCard(id){
 
   for (const who of ["a","b"]){
     const v = getScore(id, who);
-    card.querySelectorAll(`.pip[data-who="${who}"]`).forEach(pip => {
-      const n = +pip.dataset.v, on = v != null && n <= v;
-      pip.classList.toggle("fill", on);
-      pip.classList.toggle("cur", v === n);
-      pip.style.background = on ? scoreColor(v) : "";
-    });
-    const sval = card.querySelector(`.srow[data-who="${who}"] .sval`);
-    if (sval){
-      sval.textContent = v ?? "-";
-      sval.style.color = v != null ? scoreColor(v) : "";
-    }
+    const row = card.querySelector(`.srow[data-who="${who}"]`);
+    if (!row) continue;
+    row.classList.toggle("unrated", v == null);
+    row.querySelector(".sval").textContent = v == null ? "-" : fmt1(v);
+    const sval = row.querySelector(".sval");
+    sval.style.color = v == null ? "" : scoreColor(v);
+    const sl = row.querySelector(".slider");
+    sl.style.setProperty("--fill", fillPct(v) + "%");
+    // don't fight the thumb the user is currently dragging
+    if (document.activeElement !== sl && v != null) sl.value = v;
+    if (v == null) sl.value = (SCORE_MIN + SCORE_MAX) / 2;
   }
 
   const gap = (a != null && b != null) ? Math.abs(a-b) : null;
@@ -1091,6 +1123,8 @@ function renderHeader(){
    them in step with state, but never fight whoever is currently typing */
 function syncNameInputs(){
   for (const who of ["a","b"]){
+    const sw = $("#color" + who.toUpperCase());
+    if (sw && sw !== document.activeElement && sw.value !== S.colors[who]) sw.value = S.colors[who];
     const inp = $("#name" + who.toUpperCase());
     if (inp && inp !== document.activeElement && inp.value !== S.names[who]) {
       inp.value = S.names[who];
@@ -1100,6 +1134,7 @@ function syncNameInputs(){
 
 function render(){
   renderHeader();
+  applyColors();
   syncNameInputs();
   if (VIEW==="movies") renderMovies();
   else if (VIEW==="leaderboard") renderLeaderboard();
@@ -1111,9 +1146,23 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 /* ============================================================
    EVENTS
    ============================================================ */
+/* input fires continuously while dragging, so update locally only and let the
+   change event (fired on release) do the single server write */
+document.addEventListener("input", e => {
+  const sl = e.target.closest(".slider");
+  if (!sl) return;
+  setScore(sl.dataset.id, sl.dataset.who, parseFloat(sl.value), true);
+});
+document.addEventListener("change", e => {
+  const sl = e.target.closest(".slider");
+  if (!sl) return;
+  const v = roundTenth(parseFloat(sl.value));
+  push({t:"score", id: sl.dataset.id, who: sl.dataset.who, v});
+});
+
 document.addEventListener("click", e => {
-  const pip = e.target.closest(".pip");
-  if (pip){ setScore(pip.dataset.id, pip.dataset.who, +pip.dataset.v); return; }
+  const clr = e.target.closest("[data-clr]");
+  if (clr){ setScore(clr.dataset.clr, clr.dataset.who, null); return; }
 
   const wb = e.target.closest("[data-watch]");
   if (wb){
@@ -1138,6 +1187,18 @@ $("#universeSel").addEventListener("change", e => { S.universe = e.target.value;
 $("#formatSel").addEventListener("change", e => { S.format = e.target.value; save(); render(); });
 $("#orderSel").addEventListener("change", e => { S.order = e.target.value; save(); render(); });
 $("#filterSel").addEventListener("change", e => { S.filter = e.target.value; save(); render(); });
+
+["a","b"].forEach(who=>{
+  const sw = $("#color" + who.toUpperCase());
+  sw.value = S.colors[who];
+  let colorTimer;
+  sw.addEventListener("input", () => {
+    S.colors[who] = sw.value;
+    applyColors(); save();
+    clearTimeout(colorTimer);                    // one op per pause, not per drag
+    colorTimer = setTimeout(() => push({t:"color", who, v:S.colors[who]}), 400);
+  });
+});
 
 ["a","b"].forEach(who=>{
   const inp = $("#name"+who.toUpperCase());
@@ -1170,7 +1231,8 @@ $("#importFile").addEventListener("change", e=>{
       S.names = Object.assign({a:"Me",b:"Her"}, S.names||{});
       save();
       $("#nameA").value = S.names.a; $("#nameB").value = S.names.b;
-      $("#orderSel").value = S.order; $("#filterSel").value = S.filter;
+      applyColors();
+$("#orderSel").value = S.order; $("#filterSel").value = S.filter;
       $("#universeSel").value = S.universe; $("#formatSel").value = S.format;
       render();
     }catch(err){ alert("That file didn't look like a backup."); }
@@ -1186,7 +1248,8 @@ $("#resetBtn").addEventListener("click", ()=>{
   S = Object.assign(blank(), keep); save();
   push({t:"reset"});
   $("#nameA").value = S.names.a; $("#nameB").value = S.names.b;
-  $("#orderSel").value = S.order; $("#filterSel").value = S.filter;
+  applyColors();
+$("#orderSel").value = S.order; $("#filterSel").value = S.filter;
   $("#universeSel").value = S.universe; $("#formatSel").value = S.format;
   render();
 });
@@ -1235,13 +1298,14 @@ async function pull(){
     const typingName = focused && focused.classList.contains("nameinput");
 
     const fingerprint = o => JSON.stringify(o);
-    const before = fingerprint([S.names, S.scores, S.watched]);
+    const before = fingerprint([S.names, S.colors, S.scores, S.watched]);
     if (!typingName) S.names = state.names;         // don't yank the field mid-edit
+    if (state.colors) S.colors = state.colors;
     S.scores  = state.scores;
     S.watched = state.watched;
 
     // most polls find nothing new; re-rendering anyway rebuilt every poster
-    if (fingerprint([S.names, S.scores, S.watched]) !== before){
+    if (fingerprint([S.names, S.colors, S.scores, S.watched]) !== before){
       save(); render();
     }
     setStatus("shared");
@@ -1275,7 +1339,7 @@ async function createRoom(){
   try{
     const res = await fetch("/api/room", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ state: {names:S.names, scores:S.scores, watched:S.watched} })
+      body: JSON.stringify({ state: {names:S.names, colors:S.colors, scores:S.scores, watched:S.watched} })
     });
     if (res.status === 503){
       alert("Sharing is not set up on this deployment yet. The site owner needs to add a Redis integration in Vercel.");
@@ -1332,6 +1396,7 @@ function renderShare(open = false){
 }
 
 /* boot */
+applyColors();
 $("#orderSel").value = S.order;
 $("#filterSel").value = S.filter;
 $("#universeSel").value = S.universe;
