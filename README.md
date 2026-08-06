@@ -87,6 +87,18 @@ python3 fetch_posters.py          # skips what already exists
 python3 fetch_posters.py --force  # refetch everything
 ```
 
-The first six cards on screen load eagerly at high priority; the rest are
-lazy. Any title without a poster falls back to a styled tile, so a missing
-image never breaks the layout.
+Any title without a poster falls back to a styled tile, so a missing image
+never breaks the layout.
+
+Wikipedia only ever returns the one image in a title's infobox, which is not
+always the poster you would pick. To swap in a specific one:
+
+```bash
+python3 set_poster.py --list                       # every id and title
+python3 set_poster.py sp2 ~/Downloads/poster.jpg   # local file
+python3 set_poster.py sp2 https://.../poster.jpg   # or a direct image URL
+```
+
+It resizes and encodes to match the rest. `fetch_posters.py` will not
+overwrite it afterwards, since it skips files that already exist; use
+`--force` to go back to the Wikipedia default.
