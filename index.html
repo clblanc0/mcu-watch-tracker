@@ -122,7 +122,14 @@
   }
   .shareBtn:hover{border-color:var(--accent);background:rgba(19,163,74,.12)}
   .syncpill[hidden]{display:none}
+  #sharebox[hidden]{display:none}
+  .syncpill .caret{
+    font-weight:900;font-size:13px;line-height:1;opacity:.55;
+    transform:rotate(90deg);transition:transform .18s;
+  }
+  .syncpill.open .caret{transform:rotate(-90deg)}
   .syncpill{
+    font:inherit;cursor:pointer;
     display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 13px;
     background:var(--panel);border:1px solid var(--line);
     font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap;
@@ -399,7 +406,7 @@
       <label class="namepill"><span class="dot" style="background:var(--a)"></span><input id="nameA" class="nameinput" maxlength="12" spellcheck="false"></label>
       <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
     </div>
-    <div class="syncpill" id="syncPill" hidden><i></i><span></span></div>
+    <button class="syncpill" id="syncPill" hidden><i></i><span></span><b class="caret">›</b></button>
     <button class="ctrl shareBtn" id="shareBtn">Share</button>
     <div class="spacer"></div>
     <select class="ctrl" id="universeSel">
@@ -1197,7 +1204,7 @@ function setStatus(next){
   el.hidden = false;
   const label = {
     connecting: ["Connecting",   "Loading the shared board"],
-    shared:     ["Shared",       "Synced with everyone on this link"],
+    shared:     ["Shared",       "Tap to show the link to send"],
     error:      ["Not synced",   "Could not reach the server, retrying"],
   }[next] || ["", ""];
   el.className = "syncpill " + next;
@@ -1280,7 +1287,7 @@ async function createRoom(){
     history.replaceState(null, "", `#r=${code}`);
     save();                                   // re-key the local cache to this room
     setStatus("shared");
-    renderShare();
+    renderShare(true);                        // show it once, right after creating
     startSync();
     btn.style.display = "none";
     $("#footNote").textContent = "Shared board, synced for everyone with the link.";
@@ -1299,8 +1306,10 @@ function leaveRoom(){
   location.reload();
 }
 
-function renderShare(){
+function renderShare(open = false){
   const box = $("#sharebox");
+  box.hidden = !(SYNC.room && open);
+  $("#syncPill").classList.toggle("open", !box.hidden);
   if (SYNC.room){
     box.innerHTML = `
       <div class="share-row">
@@ -1331,6 +1340,10 @@ render();
 setInterval(renderHeader, 60000);
 
 $("#shareBtn").addEventListener("click", createRoom);
+$("#syncPill").addEventListener("click", () => {
+  if (!SYNC.room) return;
+  renderShare($("#sharebox").hidden);      // toggle
+});
 renderShare();
 setStatus(SYNC.status);
 
