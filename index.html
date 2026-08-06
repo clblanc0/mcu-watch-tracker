@@ -647,7 +647,16 @@ const blank = () => ({ names:{a:"Me", b:"Her"}, colors:{...DEFAULT_COLORS}, scor
    localStorage on this one device. With #r=CODE it mirrors a room on the
    server. Edits apply locally first so the UI never waits on the network, then
    go out as one small op. Polling pulls in whatever the other person did. */
-const ROOM = (location.hash.match(/[#&]r=([A-Za-z0-9-]{8,9})/) || [])[1] || null;
+/* Once you are on a shared board, opening the bare URL should put you back on
+   it. Otherwise you land on the old local board, which looks like the sharing
+   came undone and your scores went missing. */
+const LAST_ROOM = "mcu-doomsday-last-room";
+const hashRoom = (location.hash.match(/[#&]r=([A-Za-z0-9-]{8,9})/) || [])[1] || null;
+let rememberedRoom = null;
+try { rememberedRoom = localStorage.getItem(LAST_ROOM); } catch(e){}
+const ROOM = hashRoom || rememberedRoom;
+if (ROOM && !hashRoom) history.replaceState(null, "", `#r=${ROOM}`);
+if (ROOM) { try { localStorage.setItem(LAST_ROOM, ROOM); } catch(e){} }
 const SYNC = { room: ROOM, status: ROOM ? "connecting" : "local", pulling: false, flushing: false, queue: [] };
 const POLL_MS = 8000;
 
@@ -1349,6 +1358,7 @@ async function createRoom(){
     const { code } = await res.json();
     SYNC.room = code;
     history.replaceState(null, "", `#r=${code}`);
+    try { localStorage.setItem(LAST_ROOM, code); } catch(e){}
     save();                                   // re-key the local cache to this room
     setStatus("shared");
     renderShare(true);                        // show it once, right after creating
@@ -1366,6 +1376,7 @@ async function createRoom(){
 }
 
 function leaveRoom(){
+  try { localStorage.removeItem(LAST_ROOM); } catch(e){}   // stop auto-rejoining
   history.replaceState(null, "", location.pathname);
   location.reload();
 }
