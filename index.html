@@ -732,7 +732,7 @@ function cardHTML(f, idx){
     <div class="poster">
       <div class="pfall">${esc(f.t)}</div>
       <img src="posters/${f.id}.webp" alt="${esc(f.t)} poster" decoding="async"
-           loading="${eager?"eager":"lazy"}" fetchpriority="${eager?"high":"auto"}"
+           loading="eager" fetchpriority="${eager?"high":"low"}"
            onerror="this.classList.add('gone')"
            onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
       ${w?`<div class="pbadge" title="Watched">✓</div>`:""}
