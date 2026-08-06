@@ -121,6 +121,7 @@
     border-color:rgba(19,163,74,.5);color:var(--accent-soft);font-weight:700;
   }
   .shareBtn:hover{border-color:var(--accent);background:rgba(19,163,74,.12)}
+  .syncpill[hidden]{display:none}
   .syncpill{
     display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 13px;
     background:var(--panel);border:1px solid var(--line);
@@ -398,7 +399,7 @@
       <label class="namepill"><span class="dot" style="background:var(--a)"></span><input id="nameA" class="nameinput" maxlength="12" spellcheck="false"></label>
       <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
     </div>
-    <div class="syncpill local" id="syncPill"><i></i><span>Local only</span></div>
+    <div class="syncpill" id="syncPill" hidden><i></i><span></span></div>
     <button class="ctrl shareBtn" id="shareBtn">Share</button>
     <div class="spacer"></div>
     <select class="ctrl" id="universeSel">
@@ -1190,8 +1191,11 @@ function setStatus(next){
   SYNC.status = next;
   const el = $("#syncPill");
   if (!el) return;
+  // nothing worth saying when you are not sharing; the pill is only useful
+  // once there is a connection that could be up or down
+  if (next === "local"){ el.hidden = true; return; }
+  el.hidden = false;
   const label = {
-    local:      ["Local only",   "This device only"],
     connecting: ["Connecting",   "Loading the shared board"],
     shared:     ["Shared",       "Synced with everyone on this link"],
     error:      ["Not synced",   "Could not reach the server, retrying"],
