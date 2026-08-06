@@ -37,10 +37,15 @@
     font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
     -webkit-font-smoothing:antialiased;
     padding:0 0 80px;
+  }
+  /* Its own fixed layer. As `background-attachment:fixed` on the body this
+     forced a full-viewport repaint every scroll frame, which was very visible
+     on a phone. */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     background-image:
       radial-gradient(900px 500px at 15% -8%, rgba(19,163,74,.26), transparent 60%),
       radial-gradient(800px 500px at 88% -12%, rgba(110,231,255,.13), transparent 60%);
-    background-attachment:fixed;
   }
   .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
 
@@ -155,12 +160,18 @@
                         "poster foot";
     align-content:start;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    overflow:hidden;transition:.18s;
+    overflow:hidden;transition:border-color .18s, transform .18s;
+    /* don't lay out or paint cards that aren't near the viewport; `auto` lets
+       the browser remember each card's real height so scrolling stays stable */
+    content-visibility:auto;
+    contain-intrinsic-size:auto 210px;   /* measured median card height */
   }
   .card::before{
     content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--pc);z-index:3;
   }
-  .card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  @media(hover:hover){
+    .card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  }
   .card.watched{background:linear-gradient(180deg,rgba(34,201,143,.07),transparent 55%),var(--panel)}
   .card.watched::before{box-shadow:0 0 14px var(--pc)}
 
@@ -305,6 +316,9 @@
       grid-template-columns:96px 1fr;
       grid-template-areas:"poster body"
                           "foot   foot";
+      /* measured median on a 375px viewport; a low guess here makes the page
+         grow as you scroll, which reads as the scroll position jumping */
+      contain-intrinsic-size:auto 417px;
     }
     .poster{width:93px}
     .cbody{padding:14px 13px 13px 12px}
@@ -713,7 +727,7 @@ function cardHTML(f, idx){
   <article class="card${w?" watched":""}" style="--pc:${GROUPS[f.g].color}">
     <div class="poster">
       <div class="pfall">${esc(f.t)}</div>
-      <img src="posters/${f.id}.jpg" alt="${esc(f.t)} poster" loading="lazy"
+      <img src="posters/${f.id}.jpg" alt="${esc(f.t)} poster" loading="lazy" decoding="async"
            onerror="this.classList.add('gone')"
            onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
       ${w?`<div class="pbadge" title="Watched">✓</div>`:""}
@@ -823,7 +837,7 @@ function renderLeaderboard(){
       <div class="rank">${i+1}</div>
       <div class="lbposter" style="--pc:${GROUPS[f.g].color}">
         <div class="pfall">${esc(f.t)}</div>
-        <img src="posters/${f.id}.jpg" alt="" loading="lazy" onerror="this.classList.add('gone')"
+        <img src="posters/${f.id}.jpg" alt="" loading="lazy" decoding="async" onerror="this.classList.add('gone')"
              onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
       </div>
       <div class="lbtitle">${f.t}<small>${f.y} · ${UNIVERSES[uOf(f)].short} · ${GROUPS[f.g].short}</small></div>
