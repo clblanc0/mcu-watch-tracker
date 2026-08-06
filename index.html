@@ -164,7 +164,7 @@
     /* don't lay out or paint cards that aren't near the viewport; `auto` lets
        the browser remember each card's real height so scrolling stays stable */
     content-visibility:auto;
-    contain-intrinsic-size:auto 210px;   /* measured median card height */
+    contain-intrinsic-size:auto 289px;   /* measured median card height */
   }
   .card::before{
     content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--pc);z-index:3;
@@ -229,16 +229,19 @@
   .wbtn.on{background:rgba(34,201,143,.15);border-color:rgba(34,201,143,.45);color:#3ee0a3}
   .wbtn .chk{width:13px;height:13px;border-radius:4px;border:1.5px solid currentColor;display:grid;place-items:center;font-size:9px;line-height:1}
 
-  .scores{margin:10px 0 0;display:flex;flex-direction:column;gap:7px}
-  .srow{display:flex;align-items:center;gap:9px}
+  .scores{margin:10px 0 0;display:flex;flex-direction:column;gap:12px}
+  /* Name and running score sit on their own line so the pips get the card's
+     full width. Sharing that row squeezed each pip to about 11px across. */
+  .srow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .sname{
-    font-size:11px;font-weight:800;width:62px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    order:1;flex:1 1 auto;min-width:0;
+    font-size:11.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     letter-spacing:.02em;
   }
-  .pips{display:flex;gap:3px;flex:1}
+  .pips{order:3;flex:1 1 100%;display:flex;gap:4px}
   .pip{
-    flex:1;height:22px;border-radius:5px;border:1px solid var(--line);background:var(--panel-2);
-    cursor:pointer;padding:0;transition:.1s;font-size:9.5px;font-weight:800;color:transparent;
+    flex:1;height:30px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);
+    cursor:pointer;padding:0;transition:.1s;font-size:11px;font-weight:800;color:transparent;
   }
   .pip:hover{transform:scaleY(1.18);border-color:var(--line-2)}
   .pip.fill{border-color:transparent}
@@ -249,7 +252,8 @@
     .pip.fill:hover{border-color:transparent}
   }
   .sval{
-    font-size:13px;font-weight:900;width:22px;text-align:right;flex:none;font-variant-numeric:tabular-nums;color:var(--dimmer);
+    order:2;flex:none;min-width:18px;text-align:right;
+    font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--dimmer);
   }
   .diff{
     margin:9px 0 0;font-size:11px;font-weight:700;color:var(--gold);
@@ -318,21 +322,20 @@
                           "foot   foot";
       /* measured median on a 375px viewport; a low guess here makes the page
          grow as you scroll, which reads as the scroll position jumping */
-      contain-intrinsic-size:auto 417px;
+      contain-intrinsic-size:auto 433px;
     }
     .poster{width:93px}
     .cbody{padding:14px 13px 13px 12px}
     .cfoot{padding:2px 14px 14px 14px}
 
-    /* full card width means genuinely thumb-sized targets, 5 per row */
+    /* five per row at full card width, at the usual 44px touch-target floor */
     .scores{gap:13px;margin-top:0}
-    .srow{flex-wrap:wrap;gap:6px}
-    .sname{order:1;flex:1 1 auto;width:auto;font-size:12px}
-    .sval{order:2;width:auto;min-width:18px;font-size:14px}
-    .pips{order:3;flex:1 1 100%;flex-wrap:wrap;gap:6px}
+    .srow{gap:6px}
+    .sname{font-size:12px}
+    .pips{flex-wrap:wrap;gap:6px}
     .pip{
       flex:0 0 calc(20% - 4.8px);
-      height:40px;border-radius:9px;font-size:13.5px;
+      height:44px;border-radius:9px;font-size:13.5px;
       color:var(--dim);            /* show the numbers, they are tappable targets */
     }
     .pip.fill{color:rgba(0,0,0,.62)}
