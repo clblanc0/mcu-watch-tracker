@@ -156,7 +156,7 @@
   .phase-head .meta{color:var(--dimmer);font-size:12px;font-weight:600;margin-left:auto}
 
   /* ---------- movie grid ---------- */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(470px,1fr));gap:14px}
   .card{
     position:relative;display:grid;
     grid-template-columns:178px 1fr;
@@ -168,7 +168,7 @@
     /* don't lay out or paint cards that aren't near the viewport; `auto` lets
        the browser remember each card's real height so scrolling stays stable */
     content-visibility:auto;
-    contain-intrinsic-size:auto 343px;   /* measured median card height */
+    contain-intrinsic-size:auto 315px;   /* measured median card height */
   }
   .card::before{
     content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--pc);z-index:3;
@@ -213,8 +213,17 @@
     min-width:22px;padding-top:3px;
   }
   .c-title{flex:1;min-width:0}
-  .c-title h3{font-size:15.5px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
-  .c-meta{font-size:11.5px;color:var(--dimmer);margin-top:3px;font-weight:600;letter-spacing:.02em}
+  /* Card height drove poster height, and titles ran from 1 to 6 lines, so
+     posters came out 11 different sizes. Pin the text block instead. */
+  .c-title h3{
+    font-size:15.5px;font-weight:800;line-height:1.25;letter-spacing:-.01em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;min-height:2.5em;
+  }
+  .c-meta{
+    font-size:11.5px;color:var(--dimmer);margin-top:3px;font-weight:600;letter-spacing:.02em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
   .c-meta .setin{color:var(--gold);font-weight:800}
   .combo{
     flex:none;text-align:center;min-width:44px;padding:5px 6px;border-radius:9px;
@@ -263,7 +272,7 @@
     margin:9px 0 0;font-size:11px;font-weight:700;color:var(--gold);
     display:flex;align-items:center;gap:6px;
   }
-  .diff.hidden{display:none}
+  .diff.hidden{visibility:hidden}
 
   /* ---------- leaderboard ---------- */
   .lb{display:flex;flex-direction:column;gap:6px}
@@ -326,9 +335,11 @@
                           "foot   foot";
       /* measured median on a 375px viewport; a low guess here makes the page
          grow as you scroll, which reads as the scroll position jumping */
-      contain-intrinsic-size:auto 433px;
+      contain-intrinsic-size:auto 460px;
     }
     .poster{width:93px}
+    .num{display:none}                       /* the list order is obvious enough */
+    .c-title h3{-webkit-line-clamp:3;min-height:3.75em}
     .cbody{padding:14px 13px 13px 12px}
     .cfoot{padding:2px 14px 14px 14px}
 
@@ -388,7 +399,7 @@
       <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
     </div>
     <div class="syncpill local" id="syncPill"><i></i><span>Local only</span></div>
-    <button class="ctrl shareBtn" id="shareBtn">Share with her</button>
+    <button class="ctrl shareBtn" id="shareBtn">Share</button>
     <div class="spacer"></div>
     <select class="ctrl" id="universeSel">
       <option value="all">All universes</option>
@@ -749,10 +760,10 @@ function cardHTML(f, idx){
       <div class="c-top">
         <div class="num">${String(idx).padStart(2,"0")}</div>
         <div class="c-title">
-          <h3>${f.t}</h3>
+          <h3 title="${esc(f.t)}">${f.t}</h3>
           <div class="c-meta">${S.order==="story"
             ? `<b class="setin">Set in ${f.sy}</b> · ${UNIVERSES[uOf(f)].short}${isSeries(f)?` · ${f.eps} eps`:""}`
-            : `${f.y} · ${isSeries(f)?`${f.eps} ep${f.eps===1?"":"s"} · `:""}${hrs(f.r)} · ${GROUPS[f.g].short}`} </div>
+            : `${f.y} · ${isSeries(f)?`${f.eps} ep${f.eps===1?"":"s"} · `:""}${hrs(f.r)}`} </div>
         </div>
         <div class="combo${c==null?" empty":""}">
           <b style="${c!=null?`color:${scoreColor(c)}`:""}">${c==null?"-":fmt1(c)}</b>
@@ -1257,7 +1268,7 @@ async function createRoom(){
     console.error(err);
     alert("Could not create a shared board. Check your connection and try again.");
   }finally{
-    btn.disabled = false; btn.textContent = "Share with someone";
+    btn.disabled = false; btn.textContent = "Share";
   }
 }
 
