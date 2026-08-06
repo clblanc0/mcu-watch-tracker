@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Road to Doomsday | Marvel Watch Tracker</title>
+<style>
+  :root{
+    --bg:#08080d;
+    --panel:#12121b;
+    --panel-2:#191925;
+    --line:rgba(255,255,255,.09);
+    --line-2:rgba(255,255,255,.16);
+    --txt:#eceef5;
+    --dim:#8a8fa3;
+    --dimmer:#5e6376;
+    --accent:#13a34a;      /* Doom green */
+    --accent-soft:#3fd47f;
+    --gold:#f5c542;
+    --p1:#4c8dff; --p2:#ff4d4d; --p3:#b06cff; --p4:#22c98f; --p5:#ffab2e; --p6:#ff5ea8;
+    /* Fox X-Men */
+    --x1:#f2a63b; --x2:#5ec9d8; --x3:#d4552f; --x4:#e0313a; --x5:#8b7fd4;
+    /* Sony Spider-Man */
+    --s1:#d92b3a; --s2:#2f8fd4; --s3:#7d4fbd; --s4:#e94aa0;
+    /* animated X-Men + Netflix */
+    --xa:#ffb020;
+    --n1:#c0182a; --n2:#9aa1ad;
+    /* universe accents */
+    --u-mcu:#e62429; --u-xmen:#f2a63b; --u-sony:#2f8fd4; --u-netflix:#c0182a;
+    --radius:14px;
+    --a:#6ee7ff; /* player A accent */
+    --b:#ff87c3; /* player B accent */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--txt)}
+  body{
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 80px;
+    background-image:
+      radial-gradient(900px 500px at 15% -8%, rgba(19,163,74,.26), transparent 60%),
+      radial-gradient(800px 500px at 88% -12%, rgba(110,231,255,.13), transparent 60%);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+
+  /* ---------- header ---------- */
+  header{padding:34px 0 22px}
+  .kicker{
+    font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);
+    font-weight:800;margin-bottom:8px;
+  }
+  h1{
+    font-size:clamp(30px,5.5vw,52px);line-height:1;font-weight:900;letter-spacing:-.02em;
+  }
+  h1 em{font-style:normal;color:var(--accent)}
+  .sub{color:var(--dim);margin-top:10px;font-size:14px}
+
+  .hero{
+    display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;
+    padding-bottom:22px;border-bottom:1px solid var(--line);
+  }
+  .countdown{text-align:right}
+  .cd-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+  .cd-num{font-size:clamp(32px,7vw,58px);font-weight:900;line-height:1;letter-spacing:-.03em;
+    background:linear-gradient(180deg,#fff,var(--accent-soft));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .cd-sub{font-size:12px;color:var(--dim);margin-top:4px}
+
+  /* ---------- progress bar ---------- */
+  .progress-block{margin:22px 0 6px}
+  .pb-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+  .pb-title{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .pb-count b{font-size:20px;font-weight:900}
+  .pb-count span{color:var(--dim);font-size:13px}
+  .track{height:10px;border-radius:99px;background:var(--panel-2);overflow:hidden;border:1px solid var(--line);display:flex}
+  .track i{display:block;height:100%;transition:width .45s cubic-bezier(.2,.9,.25,1)}
+
+  /* ---------- tabs / toolbar ---------- */
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin:26px 0 18px;padding-bottom:0;
+  }
+  .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px}
+  .tab{
+    border:0;background:transparent;color:var(--dim);font:inherit;font-weight:700;font-size:13px;
+    padding:8px 18px;border-radius:99px;cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .tab:hover{color:var(--txt)}
+  .tab.on{background:var(--accent);color:#02160a}
+  .spacer{flex:1}
+  .ctrl{
+    background:var(--panel);border:1px solid var(--line);color:var(--txt);font:inherit;font-size:13px;
+    padding:9px 12px;border-radius:10px;cursor:pointer;transition:.15s;font-weight:600;
+  }
+  .ctrl:hover{border-color:var(--line-2);background:var(--panel-2)}
+  select.ctrl{padding-right:28px;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+    background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+
+  /* ---------- name pills ---------- */
+  .names{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .namepill{
+    display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+    border-radius:99px;padding:6px 13px 6px 10px;
+  }
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .namepill input{
+    background:transparent;border:0;color:var(--txt);font:inherit;font-weight:700;font-size:13px;
+    width:78px;outline:none;padding:0;
+  }
+  .namepill input:focus{color:var(--gold)}
+
+  /* ---------- phase heading ---------- */
+  .phase-head{
+    display:flex;align-items:center;gap:12px;margin:30px 0 14px;
+  }
+  .phase-head .bar{width:4px;height:26px;border-radius:2px}
+  .phase-head h2{font-size:15px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+  .phase-head .meta{color:var(--dimmer);font-size:12px;font-weight:600;margin-left:auto}
+
+  /* ---------- movie grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:14px}
+  .card{
+    position:relative;display:grid;
+    grid-template-columns:115px 1fr;
+    grid-template-areas:"poster body"
+                        "poster foot";
+    align-content:start;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;transition:.18s;
+  }
+  .card::before{
+    content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--pc);z-index:3;
+  }
+  .card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  .card.watched{background:linear-gradient(180deg,rgba(34,201,143,.07),transparent 55%),var(--panel)}
+  .card.watched::before{box-shadow:0 0 14px var(--pc)}
+
+  /* ---------- poster ---------- */
+  .poster{
+    grid-area:poster;
+    position:relative;width:112px;margin-left:3px;overflow:hidden;
+    background:var(--panel-2);
+  }
+  .poster img{
+    position:relative;z-index:1;width:100%;height:100%;object-fit:cover;display:block;
+    filter:grayscale(.45) brightness(.62);transition:filter .35s ease;
+  }
+  .card.watched .poster img{filter:none}
+  .poster img.gone{display:none}
+  /* several TV articles use landscape key art; cropping it to a portrait slot
+     leaves an unreadable centre strip, so letterbox those instead */
+  .poster img.wide,.lbposter img.wide{object-fit:contain;background:#0b0b12}
+  .pfall{
+    position:absolute;inset:0;z-index:0;display:grid;place-items:center;text-align:center;padding:10px;
+    font-size:10.5px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;line-height:1.3;
+    color:rgba(255,255,255,.92);background:linear-gradient(155deg,var(--pc),rgba(0,0,0,.92) 88%);
+  }
+  .pbadge{
+    position:absolute;z-index:2;top:7px;right:7px;width:19px;height:19px;border-radius:50%;
+    background:#22c98f;color:#04150e;display:grid;place-items:center;font-size:11px;font-weight:900;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);
+  }
+  .cbody{grid-area:body;min-width:0;padding:15px 15px 0 14px}
+  .cfoot{grid-area:foot;min-width:0;padding:11px 15px 13px 14px}
+
+  .c-top{display:flex;gap:12px;align-items:flex-start}
+  .num{
+    font-size:11px;font-weight:900;color:var(--dimmer);font-variant-numeric:tabular-nums;
+    min-width:22px;padding-top:3px;
+  }
+  .c-title{flex:1;min-width:0}
+  .c-title h3{font-size:15.5px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
+  .c-meta{font-size:11.5px;color:var(--dimmer);margin-top:3px;font-weight:600;letter-spacing:.02em}
+  .c-meta .setin{color:var(--gold);font-weight:800}
+  .combo{
+    flex:none;text-align:center;min-width:44px;padding:5px 6px;border-radius:9px;
+    background:var(--panel-2);border:1px solid var(--line);
+  }
+  .combo b{display:block;font-size:17px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+  .combo span{font-size:8.5px;letter-spacing:.12em;color:var(--dimmer);font-weight:800;text-transform:uppercase}
+  .combo.empty b{color:var(--dimmer);font-size:15px}
+
+  .watchrow{display:flex;align-items:center;gap:8px;margin:13px 0 4px}
+  .wbtn{
+    display:inline-flex;align-items:center;gap:7px;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--dim);font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px;cursor:pointer;transition:.15s;
+  }
+  .wbtn:hover{border-color:var(--line-2);color:var(--txt)}
+  .wbtn.on{background:rgba(34,201,143,.15);border-color:rgba(34,201,143,.45);color:#3ee0a3}
+  .wbtn .chk{width:13px;height:13px;border-radius:4px;border:1.5px solid currentColor;display:grid;place-items:center;font-size:9px;line-height:1}
+
+  .scores{margin:10px 0 0;display:flex;flex-direction:column;gap:7px}
+  .srow{display:flex;align-items:center;gap:9px}
+  .sname{
+    font-size:11px;font-weight:800;width:62px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    letter-spacing:.02em;
+  }
+  .pips{display:flex;gap:3px;flex:1}
+  .pip{
+    flex:1;height:22px;border-radius:5px;border:1px solid var(--line);background:var(--panel-2);
+    cursor:pointer;padding:0;transition:.1s;font-size:9.5px;font-weight:800;color:transparent;
+  }
+  .pip:hover{transform:scaleY(1.18);border-color:var(--line-2)}
+  .pip.fill{border-color:transparent}
+  .pip.cur{color:#06121a;box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px currentColor}
+  /* touch devices get no usable hover state, and it sticks after a tap */
+  @media(hover:none){
+    .pip:hover{transform:none;border-color:var(--line)}
+    .pip.fill:hover{border-color:transparent}
+  }
+  .sval{
+    font-size:13px;font-weight:900;width:22px;text-align:right;flex:none;font-variant-numeric:tabular-nums;color:var(--dimmer);
+  }
+  .diff{
+    margin:9px 0 0;font-size:11px;font-weight:700;color:var(--gold);
+    display:flex;align-items:center;gap:6px;
+  }
+  .diff.hidden{display:none}
+
+  /* ---------- leaderboard ---------- */
+  .lb{display:flex;flex-direction:column;gap:6px}
+  .lbrow{
+    display:grid;grid-template-columns:34px 38px 1fr auto auto auto;gap:14px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 15px;
+  }
+  .lbposter{
+    position:relative;width:38px;height:56px;border-radius:5px;overflow:hidden;background:var(--panel-2);
+  }
+  .lbposter img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;display:block}
+  .lbposter img.gone{display:none}
+  .lbposter .pfall{font-size:7px;letter-spacing:.03em;padding:3px}
+  .lbrow:hover{border-color:var(--line-2)}
+  .rank{font-size:16px;font-weight:900;color:var(--dimmer);font-variant-numeric:tabular-nums}
+  .lbrow:nth-child(1) .rank{color:var(--gold)}
+  .lbrow:nth-child(2) .rank{color:#cfd4e0}
+  .lbrow:nth-child(3) .rank{color:#c98a4b}
+  .lbtitle{font-weight:700;font-size:14px}
+  .lbtitle small{display:block;color:var(--dimmer);font-size:11px;font-weight:600;margin-top:2px}
+  .chip{
+    font-size:12px;font-weight:900;padding:4px 9px;border-radius:7px;min-width:38px;text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  .chip.a{background:rgba(110,231,255,.13);color:var(--a)}
+  .chip.b{background:rgba(255,135,195,.13);color:var(--b)}
+  .chip.tot{background:var(--gold);color:#000;min-width:46px;font-size:14px}
+
+  /* ---------- stats ---------- */
+  .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:26px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .stat .k{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer);font-weight:800}
+  .stat .v{font-size:30px;font-weight:900;line-height:1.1;margin-top:8px;letter-spacing:-.02em}
+  .stat .n{font-size:12px;color:var(--dim);margin-top:4px}
+  .panelbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .panelbox h3{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);font-weight:800;margin-bottom:14px}
+  .barlist{display:flex;flex-direction:column;gap:11px}
+  .barline{display:grid;grid-template-columns:1fr;gap:5px}
+  .barline .bl-top{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;gap:10px}
+  .barline .bl-top span:last-child{color:var(--dim);font-variant-numeric:tabular-nums;flex:none}
+  .minitrack{height:7px;background:var(--panel-2);border-radius:99px;overflow:hidden}
+  .minitrack i{display:block;height:100%;border-radius:99px}
+
+  .empty-note{color:var(--dimmer);font-size:13.5px;text-align:center;padding:44px 20px;line-height:1.7}
+
+  .footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);color:var(--dimmer);font-size:11.5px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+
+  .hide{display:none!important}
+  @media(max-width:640px){
+    .hero{grid-template-columns:1fr}
+    .countdown{text-align:left}
+    .grid{grid-template-columns:1fr}
+
+    /* The poster still fills its cell edge to edge, but the scores drop to
+       their own full-width row underneath so they no longer stretch the
+       poster cell taller and taller. */
+    .card{
+      grid-template-columns:96px 1fr;
+      grid-template-areas:"poster body"
+                          "foot   foot";
+    }
+    .poster{width:93px}
+    .cbody{padding:14px 13px 13px 12px}
+    .cfoot{padding:2px 14px 14px 14px}
+
+    /* full card width means genuinely thumb-sized targets, 5 per row */
+    .scores{gap:13px;margin-top:0}
+    .srow{flex-wrap:wrap;gap:6px}
+    .sname{order:1;flex:1 1 auto;width:auto;font-size:12px}
+    .sval{order:2;width:auto;min-width:18px;font-size:14px}
+    .pips{order:3;flex:1 1 100%;flex-wrap:wrap;gap:6px}
+    .pip{
+      flex:0 0 calc(20% - 4.8px);
+      height:40px;border-radius:9px;font-size:13.5px;
+      color:var(--dim);            /* show the numbers, they are tappable targets */
+    }
+    .pip.fill{color:rgba(0,0,0,.62)}
+    .pip.cur{color:#06121a}
+    .wbtn{padding:9px 15px;font-size:13px}
+    .lbrow{grid-template-columns:26px 32px 1fr auto;gap:10px}
+    .lbposter{width:32px;height:47px}
+    .lbrow .chip.a,.lbrow .chip.b{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="hero">
+      <div>
+        <div class="kicker">MCU · Fox X-Men · Sony Spider-Man</div>
+        <h1>Road to <em>Doomsday</em></h1>
+        <p class="sub">Every film and series, in order. Two opinions. One scoreboard.</p>
+      </div>
+      <div class="countdown">
+        <div class="cd-label">Days until Doomsday</div>
+        <div class="cd-num" id="cdNum">...</div>
+        <div class="cd-sub" id="cdSub">December 18, 2026</div>
+      </div>
+    </div>
+
+    <div class="progress-block">
+      <div class="pb-top">
+        <div class="pb-title">Progress</div>
+        <div class="pb-count"><b id="pcWatched">0</b> <span>/ <span id="pcTotal">0</span> watched · <span id="pcHours">0h</span> logged · <span id="pcLeft">0h</span> to go</span></div>
+      </div>
+      <div class="track" id="track"></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="tabs">
+      <button class="tab on" data-view="movies">Movies</button>
+      <button class="tab" data-view="leaderboard">Leaderboard</button>
+      <button class="tab" data-view="stats">Stats</button>
+    </div>
+    <div class="names">
+      <label class="namepill"><span class="dot" style="background:var(--a)"></span><input id="nameA" maxlength="12" spellcheck="false"></label>
+      <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" maxlength="12" spellcheck="false"></label>
+    </div>
+    <div class="spacer"></div>
+    <select class="ctrl" id="universeSel">
+      <option value="all">All universes</option>
+      <option value="mcu">MCU only</option>
+      <option value="xmen">Fox X-Men only</option>
+      <option value="sony">Sony Spider-Man only</option>
+      <option value="netflix">Netflix only</option>
+    </select>
+    <select class="ctrl" id="formatSel">
+      <option value="all">Films + series</option>
+      <option value="film">Films only</option>
+      <option value="series">Series only</option>
+    </select>
+    <select class="ctrl" id="orderSel">
+      <option value="release">Release order</option>
+      <option value="timeline">Timeline order</option>
+      <option value="story">Story year (mixed)</option>
+    </select>
+    <select class="ctrl" id="filterSel">
+      <option value="all">All films</option>
+      <option value="unwatched">Not watched</option>
+      <option value="watched">Watched</option>
+      <option value="unscored">Missing a score</option>
+    </select>
+  </div>
+
+  <div id="view-movies"></div>
+  <div id="view-leaderboard" class="hide"></div>
+  <div id="view-stats" class="hide"></div>
+
+  <div class="footer">
+    <span>Saved automatically in this browser.</span>
+    <button class="ctrl" id="exportBtn" style="padding:6px 11px;font-size:12px">Export backup</button>
+    <button class="ctrl" id="importBtn" style="padding:6px 11px;font-size:12px">Import backup</button>
+    <button class="ctrl" id="resetBtn" style="padding:6px 11px;font-size:12px">Reset all</button>
+    <input type="file" id="importFile" accept="application/json" class="hide">
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA: 64 films across three universes.
+   g  = saga/group id (see GROUPS)
+   tl = MCU in-universe chronological position (MCU only)
+   ============================================================ */
+const UNIVERSES = {
+  mcu:  {name:"Marvel Cinematic Universe", short:"MCU"},
+  xmen: {name:"X-Men (20th Century Fox)",  short:"Fox X-Men"},
+  sony: {name:"Sony Spider-Man",           short:"Sony"},
+  netflix:{name:"Marvel on Netflix",       short:"Netflix"},
+};
+
+const GROUPS = {
+  p1:{u:"mcu",  name:"Phase One: Assembling",        short:"Phase 1",         color:"var(--p1)"},
+  p2:{u:"mcu",  name:"Phase Two: Expansion",         short:"Phase 2",         color:"var(--p2)"},
+  p3:{u:"mcu",  name:"Phase Three: The Snap",        short:"Phase 3",         color:"var(--p3)"},
+  p4:{u:"mcu",  name:"Phase Four: Multiverse",       short:"Phase 4",         color:"var(--p4)"},
+  p5:{u:"mcu",  name:"Phase Five: Fracture",         short:"Phase 5",         color:"var(--p5)"},
+  p6:{u:"mcu",  name:"Phase Six: Doomsday",          short:"Phase 6",         color:"var(--p6)"},
+
+  xog: {u:"xmen",name:"X-Men: The Original Trilogy", short:"Original Trilogy",color:"var(--x1)"},
+  xfc: {u:"xmen",name:"X-Men: The First Class Era",  short:"First Class Era", color:"var(--x2)"},
+  xwv: {u:"xmen",name:"Wolverine Solo Films",        short:"Wolverine",       color:"var(--x3)"},
+  xdp: {u:"xmen",name:"Deadpool (Fox)",              short:"Deadpool",        color:"var(--x4)"},
+  xnm: {u:"xmen",name:"The New Mutants",             short:"New Mutants",     color:"var(--x5)"},
+
+  sra: {u:"sony",name:"The Raimi Trilogy",           short:"Raimi",           color:"var(--s1)"},
+  swb: {u:"sony",name:"The Amazing Spider-Man",      short:"Webb",            color:"var(--s2)"},
+  ssu: {u:"sony",name:"Sony's Spider-Man Universe",  short:"SSU",             color:"var(--s3)"},
+  ssv: {u:"sony",name:"Spider-Verse (Animated)",     short:"Spider-Verse",    color:"var(--s4)"},
+
+  xan: {u:"xmen",name:"X-Men '97 (Animated)",        short:"X-Men '97",       color:"var(--xa)"},
+
+  ndd: {u:"netflix",name:"Daredevil (Netflix)",      short:"Daredevil",       color:"var(--n1)"},
+  npun:{u:"netflix",name:"The Punisher",             short:"Punisher",        color:"var(--n2)"},
+};
+
+/* controls the order sections appear on screen */
+const GROUP_ORDER = ["p1","p2","p3","p4","p5","p6",
+                     "xog","xfc","xwv","xdp","xnm","xan",
+                     "sra","swb","ssu","ssv",
+                     "ndd","npun"];
+
+const FILMS = [
+  /* ---------- Marvel Cinematic Universe ---------- */
+  {id:"im1",  t:"Iron Man",                                   y:2008, g:"p1", r:126, tl:3, sy:2010},
+  {id:"hulk", t:"The Incredible Hulk",                        y:2008, g:"p1", r:112, tl:4, sy:2011},
+  {id:"im2",  t:"Iron Man 2",                                 y:2010, g:"p1", r:124, tl:5, sy:2011},
+  {id:"thor", t:"Thor",                                       y:2011, g:"p1", r:115, tl:6, sy:2011},
+  {id:"cap1", t:"Captain America: The First Avenger",         y:2011, g:"p1", r:124, tl:1, sy:1943},
+  {id:"av1",  t:"The Avengers",                               y:2012, g:"p1", r:143, tl:7, sy:2012},
+
+  {id:"im3",  t:"Iron Man 3",                                 y:2013, g:"p2", r:130, tl:8, sy:2012},
+  {id:"thor2",t:"Thor: The Dark World",                       y:2013, g:"p2", r:112, tl:9, sy:2013},
+  {id:"cap2", t:"Captain America: The Winter Soldier",        y:2014, g:"p2", r:136, tl:10, sy:2014},
+  {id:"gotg", t:"Guardians of the Galaxy",                    y:2014, g:"p2", r:121, tl:11, sy:2014},
+  {id:"av2",  t:"Avengers: Age of Ultron",                    y:2015, g:"p2", r:141, tl:13, sy:2015},
+  {id:"am1",  t:"Ant-Man",                                    y:2015, g:"p2", r:117, tl:14, sy:2015},
+
+  {id:"cap3", t:"Captain America: Civil War",                 y:2016, g:"p3", r:147, tl:15, sy:2016},
+  {id:"ds1",  t:"Doctor Strange",                             y:2016, g:"p3", r:115, tl:19, sy:2017},
+  {id:"gotg2",t:"Guardians of the Galaxy Vol. 2",             y:2017, g:"p3", r:136, tl:12, sy:2014},
+  {id:"sm1",  t:"Spider-Man: Homecoming",                     y:2017, g:"p3", r:133, tl:18, sy:2016},
+  {id:"thor3",t:"Thor: Ragnarok",                             y:2017, g:"p3", r:130, tl:20, sy:2017},
+  {id:"bp1",  t:"Black Panther",                              y:2018, g:"p3", r:134, tl:17, sy:2016},
+  {id:"av3",  t:"Avengers: Infinity War",                     y:2018, g:"p3", r:149, tl:22, sy:2018},
+  {id:"am2",  t:"Ant-Man and the Wasp",                       y:2018, g:"p3", r:118, tl:21, sy:2018},
+  {id:"cm",   t:"Captain Marvel",                             y:2019, g:"p3", r:123, tl:2, sy:1995},
+  {id:"av4",  t:"Avengers: Endgame",                          y:2019, g:"p3", r:181, tl:23, sy:2023},
+  {id:"sm2",  t:"Spider-Man: Far From Home",                  y:2019, g:"p3", r:129, tl:24, sy:2024},
+
+  {id:"bw",   t:"Black Widow",                                y:2021, g:"p4", r:134, tl:16, sy:2016},
+  {id:"sc",   t:"Shang-Chi and the Legend of the Ten Rings",  y:2021, g:"p4", r:132, tl:25, sy:2024},
+  {id:"et",   t:"Eternals",                                   y:2021, g:"p4", r:156, tl:26, sy:2024},
+  {id:"sm3",  t:"Spider-Man: No Way Home",                    y:2021, g:"p4", r:148, tl:27, sy:2024},
+  {id:"ds2",  t:"Doctor Strange in the Multiverse of Madness",y:2022, g:"p4", r:126, tl:28, sy:2025},
+  {id:"thor4",t:"Thor: Love and Thunder",                     y:2022, g:"p4", r:118, tl:29, sy:2025},
+  {id:"bp2",  t:"Black Panther: Wakanda Forever",             y:2022, g:"p4", r:161, tl:30, sy:2025},
+
+  {id:"am3",  t:"Ant-Man and the Wasp: Quantumania",          y:2023, g:"p5", r:124, tl:31, sy:2026},
+  {id:"gotg3",t:"Guardians of the Galaxy Vol. 3",             y:2023, g:"p5", r:150, tl:32, sy:2026},
+  {id:"marv", t:"The Marvels",                                y:2023, g:"p5", r:105, tl:33, sy:2026},
+  {id:"dw",   t:"Deadpool & Wolverine",                       y:2024, g:"p5", r:128, tl:34, sy:2024},
+  {id:"cap4", t:"Captain America: Brave New World",           y:2025, g:"p5", r:118, tl:35, sy:2027},
+  {id:"tb",   t:"Thunderbolts*",                              y:2025, g:"p5", r:126, tl:36, sy:2027},
+
+  {id:"ff",   t:"The Fantastic Four: First Steps",            y:2025, g:"p6", r:115, tl:37, sy:1964},
+  {id:"sm4",  t:"Spider-Man: Brand New Day",                  y:2026, g:"p6", r:130, tl:38, sy:2027},
+
+  /* ---------- Fox X-Men ---------- */
+  {id:"xm1",  t:"X-Men",                                      y:2000, g:"xog", r:104, tl:0, sy:2000},
+  {id:"xm2",  t:"X2: X-Men United",                           y:2003, g:"xog", r:134, tl:0, sy:2003},
+  {id:"xm3",  t:"X-Men: The Last Stand",                      y:2006, g:"xog", r:104, tl:0, sy:2006},
+  {id:"xmo",  t:"X-Men Origins: Wolverine",                   y:2009, g:"xwv", r:107, tl:0, sy:1979},
+  {id:"xmfc", t:"X-Men: First Class",                         y:2011, g:"xfc", r:132, tl:0, sy:1962},
+  {id:"wolv", t:"The Wolverine",                              y:2013, g:"xwv", r:126, tl:0, sy:2013},
+  {id:"dofp", t:"X-Men: Days of Future Past",                 y:2014, g:"xfc", r:132, tl:0, sy:1973},
+  {id:"dp1",  t:"Deadpool",                                   y:2016, g:"xdp", r:108, tl:0, sy:2016},
+  {id:"xmap", t:"X-Men: Apocalypse",                          y:2016, g:"xfc", r:144, tl:0, sy:1983},
+  {id:"logan",t:"Logan",                                      y:2017, g:"xwv", r:137, tl:0, sy:2029},
+  {id:"dp2",  t:"Deadpool 2",                                 y:2018, g:"xdp", r:119, tl:0, sy:2018},
+  {id:"dkph", t:"Dark Phoenix",                               y:2019, g:"xfc", r:113, tl:0, sy:1992},
+  {id:"nmut", t:"The New Mutants",                            y:2020, g:"xnm", r:94,  tl:0, sy:2019},
+
+  /* ---------- Sony Spider-Man ---------- */
+  {id:"sp1",  t:"Spider-Man",                                 y:2002, g:"sra", r:121, tl:0, sy:2002},
+  {id:"sp2",  t:"Spider-Man 2",                               y:2004, g:"sra", r:127, tl:0, sy:2004},
+  {id:"sp3",  t:"Spider-Man 3",                               y:2007, g:"sra", r:139, tl:0, sy:2007},
+  {id:"tas1", t:"The Amazing Spider-Man",                     y:2012, g:"swb", r:136, tl:0, sy:2012},
+  {id:"tas2", t:"The Amazing Spider-Man 2",                   y:2014, g:"swb", r:142, tl:0, sy:2014},
+  {id:"ven1", t:"Venom",                                      y:2018, g:"ssu", r:112, tl:0, sy:2018},
+  {id:"itsv", t:"Spider-Man: Into the Spider-Verse",          y:2018, g:"ssv", r:117, tl:0, sy:2018},
+  {id:"ven2", t:"Venom: Let There Be Carnage",                y:2021, g:"ssu", r:97,  tl:0, sy:2021},
+  {id:"morb", t:"Morbius",                                    y:2022, g:"ssu", r:104, tl:0, sy:2022},
+  {id:"atsv", t:"Spider-Man: Across the Spider-Verse",        y:2023, g:"ssv", r:140, tl:0, sy:2023},
+  {id:"ven3", t:"Venom: The Last Dance",                      y:2024, g:"ssu", r:109, tl:0, sy:2024},
+  {id:"mweb", t:"Madame Web",                                 y:2024, g:"ssu", r:116, tl:0, sy:2003},
+  {id:"krav", t:"Kraven the Hunter",                          y:2024, g:"ssu", r:127, tl:0, sy:2024},
+
+  /* ---------- Disney+ MCU series (canon, slotted into their phases) ---------- */
+  {id:"dwv",   t:"WandaVision",                             y:2021, g:"p4", r:324, tl:0, sy:2023, eps:9},
+  {id:"dfws",  t:"The Falcon and the Winter Soldier",       y:2021, g:"p4", r:300, tl:0, sy:2024, eps:6},
+  {id:"dloki1",t:"Loki: Season 1",                          y:2021, g:"p4", r:300, tl:0, sy:2023, eps:6},
+  {id:"dwi1",  t:"What If...? Season 1",                    y:2021, g:"p4", r:288, tl:0, sy:2023, eps:9},
+  {id:"dmm",   t:"Ms. Marvel",                              y:2022, g:"p4", r:282, tl:0, sy:2025, eps:6},
+
+  {id:"dsi",   t:"Secret Invasion",                         y:2023, g:"p5", r:300, tl:0, sy:2026, eps:6},
+  {id:"dloki2",t:"Loki: Season 2",                          y:2023, g:"p5", r:300, tl:0, sy:2023, eps:6},
+  {id:"dwi2",  t:"What If...? Season 2",                    y:2023, g:"p5", r:288, tl:0, sy:2024, eps:9},
+  {id:"dagath",t:"Agatha All Along",                        y:2024, g:"p5", r:360, tl:0, sy:2025, eps:9},
+  {id:"dwi3",  t:"What If...? Season 3",                    y:2024, g:"p5", r:256, tl:0, sy:2025, eps:8},
+  {id:"ddba1", t:"Daredevil: Born Again, Season 1",         y:2025, g:"p5", r:432, tl:0, sy:2026, eps:9},
+  {id:"dih",   t:"Ironheart",                               y:2025, g:"p5", r:270, tl:0, sy:2025, eps:6},
+
+  {id:"dvq",   t:"Vision Quest",                            y:2026, g:"p6", r:360, tl:0, sy:2026, eps:8},
+  {id:"ddba2", t:"Daredevil: Born Again, Season 2",         y:2026, g:"p6", r:432, tl:0, sy:2026, eps:9},
+
+  /* ---------- X-Men '97 ---------- */
+  {id:"xm97",  t:"X-Men '97",                               y:2024, g:"xan", r:320, tl:0, sy:1993, eps:10},
+
+  /* ---------- Netflix: The Defenders Saga ---------- */
+  {id:"nfdd1", t:"Daredevil: Season 1",                     y:2015, g:"ndd", r:702, tl:0, sy:2015, eps:13},
+  {id:"nfdd2", t:"Daredevil: Season 2",                     y:2016, g:"ndd", r:702, tl:0, sy:2016, eps:13},
+  {id:"nfdd3", t:"Daredevil: Season 3",                     y:2018, g:"ndd", r:715, tl:0, sy:2018, eps:13},
+
+  {id:"nfpun1",t:"The Punisher: Season 1",                  y:2017, g:"npun", r:715, tl:0, sy:2017, eps:13},
+  {id:"nfpun2",t:"The Punisher: Season 2",                  y:2019, g:"npun", r:676, tl:0, sy:2018, eps:13},
+
+];
+
+const isSeries = f => !!f.eps;
+
+const uOf = f => GROUPS[f.g].u;
+
+const DOOMSDAY = new Date(2026, 11, 18); // Dec 18, 2026
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const KEY = "mcu-doomsday-tracker-v1";
+const blank = () => ({ names:{a:"Me", b:"Her"}, scores:{}, watched:{}, order:"release", filter:"all", universe:"all", format:"all" });
+
+let S;
+try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); }
+catch(e){ S = blank(); }
+S.names  = Object.assign({a:"Me",b:"Her"}, S.names||{});
+S.scores = S.scores||{}; S.watched = S.watched||{}; S.universe = S.universe||"all"; S.format = S.format||"all";
+
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+const getScore = (id,who) => (S.scores[id]||{})[who] ?? null;
+const setScore = (id,who,v) => {
+  S.scores[id] = S.scores[id]||{};
+  if (S.scores[id][who] === v) delete S.scores[id][who]; // click same pip to clear
+  else S.scores[id][who] = v;
+  if (Object.keys(S.scores[id]).length) S.watched[id] = true;
+  save(); render();
+};
+const combo = id => {
+  const a = getScore(id,"a"), b = getScore(id,"b");
+  if (a==null && b==null) return null;
+  if (a==null) return b;
+  if (b==null) return a;
+  return (a+b)/2;
+};
+const fmt1 = n => (Math.round(n*10)/10).toFixed(1).replace(/\.0$/,".0");
+const hrs  = m => m<60 ? `${m}m` : (m%60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m/60}h`);
+const bigHrs = m => `${Math.round(m/60)}h`;
+
+/* score → color ramp (red 1 → amber 5 → green 10) */
+function scoreColor(v){
+  const h = (v-1)/9 * 130;           // 0 red → 130 green
+  return `hsl(${h} 78% ${v>=8?52:48}%)`;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = s => document.querySelector(s);
+let VIEW = "movies";
+
+/* every film in the selected universe, before watch/score filtering */
+function activeFilms(){
+  return FILMS.filter(f =>
+    (S.universe === "all" || uOf(f) === S.universe) &&
+    (S.format   === "all" || (S.format === "series") === isSeries(f)));
+}
+/* MCU has a real in-universe chronology; the Fox and Sony lines do not
+   line up with it, so those fall back to release order within a universe. */
+const U_RANK = {mcu:0, xmen:1, sony:2, netflix:3};
+function sortedFilms(){
+  const list = activeFilms();
+  if (S.order === "timeline"){
+    list.sort((x,y) =>
+      U_RANK[uOf(x)] - U_RANK[uOf(y)] || (x.tl - y.tl) || (x.y - y.y));
+  } else if (S.order === "story"){
+    // every film interleaved by the year it is set in, universes ignored
+    list.sort((x,y) => (x.sy - y.sy) || (x.y - y.y) || x.t.localeCompare(y.t));
+  }
+  return list;
+}
+function passFilter(f){
+  const w = !!S.watched[f.id], a = getScore(f.id,"a"), b = getScore(f.id,"b");
+  switch(S.filter){
+    case "watched":   return w;
+    case "unwatched": return !w;
+    case "unscored":  return a==null || b==null;
+    default:          return true;
+  }
+}
+
+function cardHTML(f, idx){
+  const w = !!S.watched[f.id];
+  const c = combo(f.id);
+  const a = getScore(f.id,"a"), b = getScore(f.id,"b");
+  const gap = (a!=null && b!=null) ? Math.abs(a-b) : null;
+
+  const pips = who => {
+    const v = getScore(f.id, who);
+    let out = "";
+    for (let i=1;i<=10;i++){
+      const on = v!=null && i<=v;
+      const cur = v===i;
+      const bg = on ? scoreColor(v) : "";
+      out += `<button class="pip${on?" fill":""}${cur?" cur":""}" data-id="${f.id}" data-who="${who}" data-v="${i}"
+               style="${on?`background:${bg}`:""}"
+               aria-label="${i} out of 10" title="${i}/10">${i}</button>`;
+    }
+    return out;
+  };
+
+  return `
+  <article class="card${w?" watched":""}" style="--pc:${GROUPS[f.g].color}">
+    <div class="poster">
+      <div class="pfall">${esc(f.t)}</div>
+      <img src="posters/${f.id}.jpg" alt="${esc(f.t)} poster" loading="lazy"
+           onerror="this.classList.add('gone')"
+           onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
+      ${w?`<div class="pbadge" title="Watched">✓</div>`:""}
+    </div>
+
+    <div class="cbody">
+      <div class="c-top">
+        <div class="num">${String(idx).padStart(2,"0")}</div>
+        <div class="c-title">
+          <h3>${f.t}</h3>
+          <div class="c-meta">${S.order==="story"
+            ? `<b class="setin">Set in ${f.sy}</b> · ${UNIVERSES[uOf(f)].short}${isSeries(f)?` · ${f.eps} eps`:""}`
+            : `${f.y} · ${isSeries(f)?`${f.eps} ep${f.eps===1?"":"s"} · `:""}${hrs(f.r)} · ${GROUPS[f.g].short}`} </div>
+        </div>
+        <div class="combo${c==null?" empty":""}">
+          <b style="${c!=null?`color:${scoreColor(c)}`:""}">${c==null?"-":fmt1(c)}</b>
+          <span>score</span>
+        </div>
+      </div>
+
+      <div class="watchrow">
+        <button class="wbtn${w?" on":""}" data-watch="${f.id}">
+          <span class="chk">${w?"✓":""}</span>${w?"Watched":"Mark watched"}
+        </button>
+      </div>
+    </div>
+
+    <div class="cfoot">
+      <div class="scores">
+        <div class="srow">
+          <div class="sname" style="color:var(--a)">${esc(S.names.a)}</div>
+          <div class="pips">${pips("a")}</div>
+          <div class="sval" style="${a!=null?`color:${scoreColor(a)}`:""}">${a??"-"}</div>
+        </div>
+        <div class="srow">
+          <div class="sname" style="color:var(--b)">${esc(S.names.b)}</div>
+          <div class="pips">${pips("b")}</div>
+          <div class="sval" style="${b!=null?`color:${scoreColor(b)}`:""}">${b??"-"}</div>
+        </div>
+      </div>
+
+      <div class="diff${gap==null||gap<3?" hidden":""}">
+        ⚡ ${gap} points apart. ${gap>=6?"Take it outside.":"Debate required."}
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderMovies(){
+  const list = sortedFilms().filter(passFilter);
+  const el = $("#view-movies");
+  if (!list.length){ el.innerHTML = `<div class="empty-note">Nothing matches that filter.</div>`; return; }
+
+  // index numbers always reflect the active ordering across ALL films
+  const posMap = new Map(sortedFilms().map((f,i)=>[f.id,i+1]));
+
+  const section = (color, title, note, films) => `
+      <div class="phase-head">
+        <div class="bar" style="background:${color}"></div>
+        <h2>${title}</h2>
+        <div class="meta">${note}</div>
+      </div>
+      <div class="grid">${films.map(f=>cardHTML(f,posMap.get(f.id))).join("")}</div>`;
+
+  let out = "";
+
+  if (S.order === "story"){
+    const ys = list.map(f=>f.sy);
+    out += section("var(--gold)", "Everything by story year",
+      `${list.length} film${list.length===1?"":"s"}, ${Math.min(...ys)} to ${Math.max(...ys)}`, list);
+    el.innerHTML = out;
+    return;
+  }
+
+  if (S.order === "timeline"){
+    for (const u of ["mcu","xmen","sony","netflix"]){
+      const inU = list.filter(f=>uOf(f)===u);
+      if (!inU.length) continue;
+      const note = u === "mcu"
+        ? `${inU.length} film${inU.length===1?"":"s"} in story order`
+        : `${inU.length} film${inU.length===1?"":"s"} in release order`;
+      out += section(`var(--u-${u})`, UNIVERSES[u].name, note, inU);
+    }
+    el.innerHTML = out;
+    return;
+  }
+
+  for (const gid of GROUP_ORDER){
+    const inGroup = list.filter(f=>f.g===gid);
+    if (!inGroup.length) continue;
+    const all  = FILMS.filter(f=>f.g===gid);
+    const done = all.filter(f=>S.watched[f.id]).length;
+    out += section(GROUPS[gid].color, GROUPS[gid].name, `${done}/${all.length} watched`, inGroup);
+  }
+  el.innerHTML = out;
+}
+
+function renderLeaderboard(){
+  const scored = activeFilms().filter(f=>combo(f.id)!=null)
+                              .sort((x,y)=>combo(y.id)-combo(x.id));
+  const el = $("#view-leaderboard");
+  if (!scored.length){
+    el.innerHTML = `<div class="empty-note">No scores yet.<br>Rate a film on the Movies tab and the rankings show up here.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="lb">` + scored.map((f,i)=>{
+    const a=getScore(f.id,"a"), b=getScore(f.id,"b");
+    return `<div class="lbrow">
+      <div class="rank">${i+1}</div>
+      <div class="lbposter" style="--pc:${GROUPS[f.g].color}">
+        <div class="pfall">${esc(f.t)}</div>
+        <img src="posters/${f.id}.jpg" alt="" loading="lazy" onerror="this.classList.add('gone')"
+             onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
+      </div>
+      <div class="lbtitle">${f.t}<small>${f.y} · ${UNIVERSES[uOf(f)].short} · ${GROUPS[f.g].short}</small></div>
+      <div class="chip a">${a??"-"}</div>
+      <div class="chip b">${b??"-"}</div>
+      <div class="chip tot" style="background:${scoreColor(combo(f.id))}">${fmt1(combo(f.id))}</div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function renderStats(){
+  const el = $("#view-stats");
+  const pool = activeFilms();
+  const watched = pool.filter(f=>S.watched[f.id]);
+  const mins = watched.reduce((s,f)=>s+f.r,0);
+  const aVals = pool.map(f=>getScore(f.id,"a")).filter(v=>v!=null);
+  const bVals = pool.map(f=>getScore(f.id,"b")).filter(v=>v!=null);
+  const both  = pool.filter(f=>getScore(f.id,"a")!=null && getScore(f.id,"b")!=null);
+  const avg = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : null;
+
+  const gaps = both.map(f=>({f, g:Math.abs(getScore(f.id,"a")-getScore(f.id,"b"))}))
+                   .sort((x,y)=>y.g-x.g);
+  const agree = both.length ? Math.round((1 - avg(gaps.map(x=>x.g))/9) * 100) : null;
+
+  const aFav = aVals.length ? pool.filter(f=>getScore(f.id,"a")===Math.max(...aVals)) : [];
+  const bFav = bVals.length ? pool.filter(f=>getScore(f.id,"b")===Math.max(...bVals)) : [];
+
+  const stat = (k,v,n,color) =>
+    `<div class="stat"><div class="k">${k}</div><div class="v"${color?` style="color:${color}"`:""}>${v}</div><div class="n">${n}</div></div>`;
+
+  let html = `<div class="statgrid">
+    ${stat("Titles watched", `${watched.length}<span style="font-size:16px;color:var(--dimmer)">/${pool.length}</span>`,
+           `${pool.length - watched.length} left before Doomsday`)}
+    ${stat("Time together", bigHrs(mins), `${Math.round(mins/60/24*10)/10} days of Marvel`)}
+    ${stat(esc(S.names.a)+" · avg score", aVals.length?fmt1(avg(aVals)):"-",
+           `${aVals.length} film${aVals.length===1?"":"s"} rated`, aVals.length?scoreColor(avg(aVals)):null)}
+    ${stat(esc(S.names.b)+" · avg score", bVals.length?fmt1(avg(bVals)):"-",
+           `${bVals.length} film${bVals.length===1?"":"s"} rated`, bVals.length?scoreColor(avg(bVals)):null)}
+    ${stat("Agreement", agree!=null?agree+"%":"-",
+           both.length?`across ${both.length} film${both.length===1?"":"s"} you both rated`:"rate the same film to compare",
+           agree!=null?scoreColor(agree/10):null)}
+  </div>`;
+
+  // average score per saga
+  const sagaRows = GROUP_ORDER.map(gid=>{
+    const fs = pool.filter(f=>f.g===gid && combo(f.id)!=null);
+    if (!fs.length) return null;
+    const v = avg(fs.map(f=>combo(f.id)));
+    return `<div class="barline">
+      <div class="bl-top"><span>${GROUPS[gid].name}</span><span>${fmt1(v)} · ${fs.length} rated</span></div>
+      <div class="minitrack"><i style="width:${v*10}%;background:${GROUPS[gid].color}"></i></div>
+    </div>`;
+  }).filter(Boolean).join("");
+
+  if (sagaRows) html += `<div class="panelbox"><h3>Average score by saga</h3><div class="barlist">${sagaRows}</div></div>`;
+
+  // head to head across universes, only when more than one is in play
+  const uRows = ["mcu","xmen","sony","netflix"].map(u=>{
+    const fs = pool.filter(f=>uOf(f)===u && combo(f.id)!=null);
+    if (!fs.length) return null;
+    const v = avg(fs.map(f=>combo(f.id)));
+    return `<div class="barline">
+      <div class="bl-top"><span>${UNIVERSES[u].name}</span><span>${fmt1(v)} · ${fs.length} rated</span></div>
+      <div class="minitrack"><i style="width:${v*10}%;background:var(--u-${u})"></i></div>
+    </div>`;
+  }).filter(Boolean);
+
+  if (uRows.length > 1)
+    html += `<div class="panelbox"><h3>Universe head to head</h3><div class="barlist">${uRows.join("")}</div></div>`;
+
+  if (gaps.length){
+    const top = gaps.filter(x=>x.g>0).slice(0,5);
+    if (top.length){
+      html += `<div class="panelbox"><h3>Biggest disagreements</h3><div class="barlist">` +
+        top.map(x=>`<div class="barline">
+          <div class="bl-top"><span>${x.f.t}</span>
+          <span><span style="color:var(--a)">${getScore(x.f.id,"a")}</span> vs <span style="color:var(--b)">${getScore(x.f.id,"b")}</span> · ${x.g} apart</span></div>
+          <div class="minitrack"><i style="width:${x.g/9*100}%;background:var(--gold)"></i></div>
+        </div>`).join("") + `</div></div>`;
+    } else {
+      html += `<div class="panelbox"><h3>Biggest disagreements</h3>
+        <div style="color:var(--dim);font-size:13.5px">Perfect agreement on every film so far. Suspicious.</div></div>`;
+    }
+  }
+
+  if (aFav.length || bFav.length){
+    html += `<div class="panelbox"><h3>Personal favourites</h3><div class="barlist">
+      ${aFav.length?`<div class="barline"><div class="bl-top"><span style="color:var(--a)">${esc(S.names.a)}</span><span style="color:var(--txt);text-align:right">${aFav.map(f=>f.t).join(", ")} · ${Math.max(...aVals)}/10</span></div></div>`:""}
+      ${bFav.length?`<div class="barline"><div class="bl-top"><span style="color:var(--b)">${esc(S.names.b)}</span><span style="color:var(--txt);text-align:right">${bFav.map(f=>f.t).join(", ")} · ${Math.max(...bVals)}/10</span></div></div>`:""}
+    </div></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderHeader(){
+  const pool = activeFilms();
+  const watched = pool.filter(f=>S.watched[f.id]);
+  const mins = watched.reduce((s,f)=>s+f.r,0);
+  const left = pool.filter(f=>!S.watched[f.id]).reduce((s,f)=>s+f.r,0);
+  $("#pcWatched").textContent = watched.length;
+  $("#pcTotal").textContent   = pool.length;
+  $("#pcHours").textContent   = bigHrs(mins);
+  $("#pcLeft").textContent    = bigHrs(left);
+
+  // one track segment per saga in play
+  $("#track").innerHTML = GROUP_ORDER.map(gid=>{
+    const all = pool.filter(f=>f.g===gid);
+    if (!all.length) return "";
+    const done = all.filter(f=>S.watched[f.id]).length;
+    return `<i style="width:${done/pool.length*100}%;background:${GROUPS[gid].color}"></i>`;
+  }).join("");
+
+  const days = Math.ceil((DOOMSDAY - new Date()) / 86400000);
+  const cd = $("#cdNum"), sub = $("#cdSub");
+  if (days > 0){
+    cd.textContent = days;
+    const perWeek = left>0 ? (left/60) / (days/7) : 0;
+    sub.textContent = left>0
+      ? `≈ ${(Math.round(perWeek*10)/10)}h of Marvel per week to finish`
+      : `You're done. Go see the movie.`;
+  } else {
+    cd.textContent = "IT'S TIME";
+    cd.style.fontSize = "clamp(24px,5vw,40px)";
+    sub.textContent = "Avengers: Doomsday is out.";
+  }
+}
+
+function render(){
+  renderHeader();
+  if (VIEW==="movies") renderMovies();
+  else if (VIEW==="leaderboard") renderLeaderboard();
+  else renderStats();
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+document.addEventListener("click", e => {
+  const pip = e.target.closest(".pip");
+  if (pip){ setScore(pip.dataset.id, pip.dataset.who, +pip.dataset.v); return; }
+
+  const wb = e.target.closest("[data-watch]");
+  if (wb){
+    const id = wb.dataset.watch;
+    S.watched[id] = !S.watched[id];
+    save(); render(); return;
+  }
+
+  const tab = e.target.closest(".tab");
+  if (tab){
+    VIEW = tab.dataset.view;
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on", t===tab));
+    ["movies","leaderboard","stats"].forEach(v=>
+      $("#view-"+v).classList.toggle("hide", v!==VIEW));
+    render(); return;
+  }
+});
+
+$("#universeSel").addEventListener("change", e => { S.universe = e.target.value; save(); render(); });
+$("#formatSel").addEventListener("change", e => { S.format = e.target.value; save(); render(); });
+$("#orderSel").addEventListener("change", e => { S.order = e.target.value; save(); render(); });
+$("#filterSel").addEventListener("change", e => { S.filter = e.target.value; save(); render(); });
+
+["a","b"].forEach(who=>{
+  const inp = $("#name"+who.toUpperCase());
+  inp.value = S.names[who];
+  inp.addEventListener("input", () => { S.names[who] = inp.value || (who==="a"?"Me":"Her"); save(); render(); });
+});
+
+$("#exportBtn").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `mcu-scores-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("#importBtn").addEventListener("click", ()=> $("#importFile").click());
+$("#importFile").addEventListener("change", e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const d = JSON.parse(fr.result);
+      S = Object.assign(blank(), d);
+      S.names = Object.assign({a:"Me",b:"Her"}, S.names||{});
+      save();
+      $("#nameA").value = S.names.a; $("#nameB").value = S.names.b;
+      $("#orderSel").value = S.order; $("#filterSel").value = S.filter;
+      $("#universeSel").value = S.universe; $("#formatSel").value = S.format;
+      render();
+    }catch(err){ alert("That file didn't look like a backup."); }
+  };
+  fr.readAsText(file);
+  e.target.value = "";
+});
+$("#resetBtn").addEventListener("click", ()=>{
+  if(!confirm("Erase all watch marks and scores? This can't be undone.")) return;
+  S = blank(); save();
+  $("#nameA").value = S.names.a; $("#nameB").value = S.names.b;
+  $("#orderSel").value = S.order; $("#filterSel").value = S.filter;
+  $("#universeSel").value = S.universe; $("#formatSel").value = S.format;
+  render();
+});
+
+/* boot */
+$("#orderSel").value = S.order;
+$("#filterSel").value = S.filter;
+$("#universeSel").value = S.universe;
+$("#formatSel").value = S.format;
+render();
+setInterval(renderHeader, 60000);
+</script>
+</body>
+</html>
