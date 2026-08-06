@@ -117,6 +117,10 @@
   .namepill input:focus{color:var(--gold)}
 
   /* ---------- sync pill + share box ---------- */
+  .shareBtn{
+    border-color:rgba(19,163,74,.5);color:var(--accent-soft);font-weight:700;
+  }
+  .shareBtn:hover{border-color:var(--accent);background:rgba(19,163,74,.12)}
   .syncpill{
     display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 13px;
     background:var(--panel);border:1px solid var(--line);
@@ -131,7 +135,7 @@
   @keyframes pulse{50%{opacity:.25}}
 
   #sharebox:not(:empty){
-    margin:26px 0 0;padding:15px 16px;border-radius:var(--radius);
+    margin:0 0 22px;padding:15px 16px;border-radius:var(--radius);
     background:var(--panel);border:1px solid var(--line);
   }
   .share-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
@@ -155,7 +159,7 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:14px}
   .card{
     position:relative;display:grid;
-    grid-template-columns:115px 1fr;
+    grid-template-columns:178px 1fr;
     grid-template-areas:"poster body"
                         "poster foot";
     align-content:start;
@@ -164,7 +168,7 @@
     /* don't lay out or paint cards that aren't near the viewport; `auto` lets
        the browser remember each card's real height so scrolling stays stable */
     content-visibility:auto;
-    contain-intrinsic-size:auto 289px;   /* measured median card height */
+    contain-intrinsic-size:auto 343px;   /* measured median card height */
   }
   .card::before{
     content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--pc);z-index:3;
@@ -178,7 +182,7 @@
   /* ---------- poster ---------- */
   .poster{
     grid-area:poster;
-    position:relative;width:112px;margin-left:3px;overflow:hidden;
+    position:relative;width:175px;margin-left:3px;overflow:hidden;
     background:var(--panel-2);
   }
   .poster img{
@@ -384,6 +388,7 @@
       <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
     </div>
     <div class="syncpill local" id="syncPill"><i></i><span>Local only</span></div>
+    <button class="ctrl shareBtn" id="shareBtn">Share with her</button>
     <div class="spacer"></div>
     <select class="ctrl" id="universeSel">
       <option value="all">All universes</option>
@@ -410,15 +415,14 @@
     </select>
   </div>
 
+  <div id="sharebox"></div>
+
   <div id="view-movies"></div>
   <div id="view-leaderboard" class="hide"></div>
   <div id="view-stats" class="hide"></div>
 
-  <div id="sharebox"></div>
-
   <div class="footer">
     <span id="footNote">Saved automatically in this browser.</span>
-    <button class="ctrl" id="shareBtn" style="padding:6px 11px;font-size:12px">Share with someone</button>
     <button class="ctrl" id="exportBtn" style="padding:6px 11px;font-size:12px">Export backup</button>
     <button class="ctrl" id="importBtn" style="padding:6px 11px;font-size:12px">Import backup</button>
     <button class="ctrl" id="resetBtn" style="padding:6px 11px;font-size:12px">Reset all</button>
@@ -1213,6 +1217,18 @@ function shareURL(code){
   return `${location.origin}${location.pathname}#r=${code}`;
 }
 
+/* On a phone this opens the OS share sheet, so the link can go straight into
+   Messages. Everywhere else it falls back to the clipboard. */
+async function sendLink(){
+  const url = shareURL(SYNC.room);
+  if (navigator.share){
+    try { await navigator.share({ title: "Road to Doomsday", text: "Our Marvel scoreboard", url }); return "shared"; }
+    catch(e){ if (e.name === "AbortError") return "cancelled"; }
+  }
+  try { await navigator.clipboard.writeText(url); } catch(e){}
+  return "copied";
+}
+
 async function createRoom(){
   const btn = $("#shareBtn");
   btn.disabled = true; btn.textContent = "Creating...";
@@ -1227,8 +1243,16 @@ async function createRoom(){
     }
     if (!res.ok) throw new Error(res.status);
     const { code } = await res.json();
-    location.hash = `r=${code}`;   // reload picks the room up cleanly
-    location.reload();
+    SYNC.room = code;
+    history.replaceState(null, "", `#r=${code}`);
+    save();                                   // re-key the local cache to this room
+    setStatus("shared");
+    renderShare();
+    startSync();
+    btn.style.display = "none";
+    $("#footNote").textContent = "Shared board, synced for everyone with the link.";
+    $("#sharebox").scrollIntoView({ behavior:"smooth", block:"center" });
+    sendLink();                               // straight to the share sheet
   }catch(err){
     console.error(err);
     alert("Could not create a shared board. Check your connection and try again.");
@@ -1248,16 +1272,14 @@ function renderShare(){
     box.innerHTML = `
       <div class="share-row">
         <input id="shareLink" class="share-link" readonly value="${esc(shareURL(SYNC.room))}">
-        <button class="ctrl" id="copyBtn">Copy link</button>
+        <button class="ctrl shareBtn" id="copyBtn">${navigator.share ? "Send link" : "Copy link"}</button>
         <button class="ctrl" id="leaveBtn">Stop sharing</button>
       </div>
       <div class="share-note">Anyone with this link can see and change these scores. Board code <b>${esc(SYNC.room)}</b>.</div>`;
     $("#copyBtn").addEventListener("click", async () => {
-      const input = $("#shareLink");
-      input.select();
-      try { await navigator.clipboard.writeText(input.value); }
-      catch(e){ document.execCommand("copy"); }
-      const b = $("#copyBtn"); b.textContent = "Copied"; setTimeout(()=>b.textContent="Copy link", 1500);
+      const b = $("#copyBtn"), label = b.textContent;
+      const how = await sendLink();
+      if (how === "copied"){ b.textContent = "Copied"; setTimeout(()=>b.textContent = label, 1500); }
     });
     $("#leaveBtn").addEventListener("click", () => {
       if (confirm("Stop syncing on this device? The shared board keeps existing, and this link will bring you back.")) leaveRoom();
@@ -1279,9 +1301,9 @@ $("#shareBtn").addEventListener("click", createRoom);
 renderShare();
 setStatus(SYNC.status);
 
-if (SYNC.room){
-  $("#shareBtn").style.display = "none";
-  $("#footNote").textContent = "Shared board, synced for everyone with the link.";
+function startSync(){
+  if (SYNC.started) return;
+  SYNC.started = true;
   pull();
   setInterval(pull, POLL_MS);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
@@ -1289,6 +1311,12 @@ if (SYNC.room){
   window.addEventListener("beforeunload", e => {
     if (SYNC.queue.length){ e.preventDefault(); e.returnValue = ""; }
   });
+}
+
+if (SYNC.room){
+  $("#shareBtn").style.display = "none";
+  $("#footNote").textContent = "Shared board, synced for everyone with the link.";
+  startSync();
 }
 </script>
 </body>
