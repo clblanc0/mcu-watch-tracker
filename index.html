@@ -1016,6 +1016,16 @@ function updateCard(id){
 }
 
 /* section headings carry a watched tally that a single edit can change */
+/* The player name appears on every card, but it is the only thing that
+   changes, so swap the labels instead of rebuilding the list. Re-rendering on
+   each keystroke threw away all 84 <img> elements and made posters flicker. */
+function updateNames(){
+  for (const who of ["a","b"]){
+    document.querySelectorAll(`.srow[data-who="${who}"] .sname`)
+      .forEach(el => { el.textContent = S.names[who]; });
+  }
+}
+
 function updateGroupCounts(){
   document.querySelectorAll(".phase-head[data-g]").forEach(head => {
     const gid = head.dataset.g;
@@ -1127,7 +1137,8 @@ $("#filterSel").addEventListener("change", e => { S.filter = e.target.value; sav
   let nameTimer;
   inp.addEventListener("input", () => {
     S.names[who] = inp.value || (who==="a"?"Me":"Her");
-    save(); render();
+    save();
+    if (VIEW === "movies") updateNames(); else render();
     clearTimeout(nameTimer);                       // one op per pause, not per keystroke
     nameTimer = setTimeout(() => push({t:"name", who, v:S.names[who]}), 500);
   });
@@ -1211,10 +1222,17 @@ async function pull(){
     const { state } = await res.json();
     const focused = document.activeElement;
     const typingName = focused && focused.classList.contains("nameinput");
+
+    const fingerprint = o => JSON.stringify(o);
+    const before = fingerprint([S.names, S.scores, S.watched]);
     if (!typingName) S.names = state.names;         // don't yank the field mid-edit
     S.scores  = state.scores;
     S.watched = state.watched;
-    save(); render();
+
+    // most polls find nothing new; re-rendering anyway rebuilt every poster
+    if (fingerprint([S.names, S.scores, S.watched]) !== before){
+      save(); render();
+    }
     setStatus("shared");
   }catch(err){
     console.warn("pull failed", err);
