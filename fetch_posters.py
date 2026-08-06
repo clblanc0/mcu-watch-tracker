@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """
-Downloads one poster per MCU film into ./posters/<id>.jpg
+Downloads one poster per title into ./posters/<id>.webp
 
 Source: English Wikipedia's pageimages API (no key, no signup).
 Re-run it any time; files already on disk are skipped unless you pass --force.
-Useful later for films whose poster wasn't published yet.
+Useful later for titles whose poster wasn't published yet.
+
+Images are downscaled to fit MAX_BOX and saved as WebP. The widest slot in the
+UI is 112px, so 240px still covers a 2x display while keeping the whole set
+around 1.5 MB instead of 6.7 MB.
+
+Requires Pillow:  pip install Pillow
 
     python3 fetch_posters.py
     python3 fetch_posters.py --force
 """
 
+import io
 import json
 import os
 import sys
@@ -17,10 +24,14 @@ import time
 import urllib.parse
 import urllib.request
 
+from PIL import Image
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "posters")
 UA = "mcu-watch-tracker/1.0 (personal use)"
-WIDTH = 500
+WIDTH = 500              # ask Wikipedia for this, then downscale locally
+MAX_BOX = (240, 380)     # what actually ships
+QUALITY = 82
 
 # app id -> Wikipedia article title
 FILMS = [
@@ -187,7 +198,7 @@ def main():
     missing = []
 
     todo = [(fid, title) for fid, title in FILMS
-            if force or not os.path.exists(os.path.join(OUT, fid + ".jpg"))]
+            if force or not os.path.exists(os.path.join(OUT, fid + ".webp"))]
     skipped = len(FILMS) - len(todo)
     if not todo:
         print("All %d posters already present. Use --force to refetch." % len(FILMS))
@@ -196,17 +207,19 @@ def main():
     urls = poster_urls([t for _, t in todo])
 
     for fid, title in todo:
-        dest = os.path.join(OUT, fid + ".jpg")
+        dest = os.path.join(OUT, fid + ".webp")
         url = urls.get(title)
         if not url:
             missing.append((fid, title, "no poster on the article yet"))
             print("  miss  %-6s %s" % (fid, title))
             continue
         try:
-            with open(dest, "wb") as fh:
-                fh.write(get(url))
+            im = Image.open(io.BytesIO(get(url))).convert("RGB")
+            im.thumbnail(MAX_BOX, Image.LANCZOS)
+            im.save(dest, "WEBP", quality=QUALITY, method=6)
             got += 1
-            print("  ok    %-6s %s" % (fid, title))
+            print("  ok    %-6s %-46s %dx%d %dKB"
+                  % (fid, title, im.size[0], im.size[1], os.path.getsize(dest) // 1024))
         except Exception as e:
             if os.path.exists(dest):
                 os.remove(dest)

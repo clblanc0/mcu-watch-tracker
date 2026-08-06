@@ -703,7 +703,11 @@ function passFilter(f){
   }
 }
 
+let painted = 0;   // reset each render; drives eager loading of the first cards
+const EAGER_CARDS = 6;
+
 function cardHTML(f, idx){
+  const eager = painted++ < EAGER_CARDS;
   const w = !!S.watched[f.id];
   const c = combo(f.id);
   const a = getScore(f.id,"a"), b = getScore(f.id,"b");
@@ -727,7 +731,8 @@ function cardHTML(f, idx){
   <article class="card${w?" watched":""}" style="--pc:${GROUPS[f.g].color}">
     <div class="poster">
       <div class="pfall">${esc(f.t)}</div>
-      <img src="posters/${f.id}.jpg" alt="${esc(f.t)} poster" loading="lazy" decoding="async"
+      <img src="posters/${f.id}.webp" alt="${esc(f.t)} poster" decoding="async"
+           loading="${eager?"eager":"lazy"}" fetchpriority="${eager?"high":"auto"}"
            onerror="this.classList.add('gone')"
            onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
       ${w?`<div class="pbadge" title="Watched">✓</div>`:""}
@@ -777,6 +782,7 @@ function cardHTML(f, idx){
 }
 
 function renderMovies(){
+  painted = 0;
   const list = sortedFilms().filter(passFilter);
   const el = $("#view-movies");
   if (!list.length){ el.innerHTML = `<div class="empty-note">Nothing matches that filter.</div>`; return; }
@@ -824,6 +830,7 @@ function renderMovies(){
 }
 
 function renderLeaderboard(){
+  painted = 0;
   const scored = activeFilms().filter(f=>combo(f.id)!=null)
                               .sort((x,y)=>combo(y.id)-combo(x.id));
   const el = $("#view-leaderboard");
@@ -837,7 +844,7 @@ function renderLeaderboard(){
       <div class="rank">${i+1}</div>
       <div class="lbposter" style="--pc:${GROUPS[f.g].color}">
         <div class="pfall">${esc(f.t)}</div>
-        <img src="posters/${f.id}.jpg" alt="" loading="lazy" decoding="async" onerror="this.classList.add('gone')"
+        <img src="posters/${f.id}.webp" alt="" loading="lazy" decoding="async" onerror="this.classList.add('gone')"
              onload="if(this.naturalWidth>=this.naturalHeight)this.classList.add('wide')">
       </div>
       <div class="lbtitle">${f.t}<small>${f.y} · ${UNIVERSES[uOf(f)].short} · ${GROUPS[f.g].short}</small></div>

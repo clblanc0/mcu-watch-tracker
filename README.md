@@ -73,14 +73,20 @@ cannot clobber each other and no merge step is needed.
 
 ## Posters
 
-`posters/` holds one image per title, pulled from English Wikipedia's
-`pageimages` API. To refetch (for example when an upcoming title's poster is
-finally published):
+`posters/` holds one WebP per title, pulled from English Wikipedia's
+`pageimages` API and downscaled to fit 240x380. The widest slot in the UI is
+112px, so that still covers a 2x display while keeping the whole set near
+1.5 MB. Straight from Wikipedia they were 6.7 MB, several of them PNGs, at
+about 83 KB each for a thumbnail.
+
+Refetch (for example when an upcoming title's poster is finally published):
 
 ```bash
+pip install Pillow
 python3 fetch_posters.py          # skips what already exists
 python3 fetch_posters.py --force  # refetch everything
 ```
 
-Any title without a poster falls back to a styled tile, so a missing image
-never breaks the layout.
+The first six cards on screen load eagerly at high priority; the rest are
+lazy. Any title without a poster falls back to a styled tile, so a missing
+image never breaks the layout.
