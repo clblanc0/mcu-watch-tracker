@@ -111,6 +111,33 @@
   }
   .namepill input:focus{color:var(--gold)}
 
+  /* ---------- sync pill + share box ---------- */
+  .syncpill{
+    display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 13px;
+    background:var(--panel);border:1px solid var(--line);
+    font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap;
+  }
+  .syncpill i{width:8px;height:8px;border-radius:50%;background:var(--dimmer);flex:none}
+  .syncpill.shared{border-color:rgba(34,201,143,.45);color:#3ee0a3}
+  .syncpill.shared i{background:#22c98f;box-shadow:0 0 8px #22c98f}
+  .syncpill.connecting i{background:var(--gold);animation:pulse 1s ease-in-out infinite}
+  .syncpill.error{border-color:rgba(255,77,77,.45);color:#ff8080}
+  .syncpill.error i{background:#ff4d4d}
+  @keyframes pulse{50%{opacity:.25}}
+
+  #sharebox:not(:empty){
+    margin:26px 0 0;padding:15px 16px;border-radius:var(--radius);
+    background:var(--panel);border:1px solid var(--line);
+  }
+  .share-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .share-link{
+    flex:1;min-width:220px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    color:var(--txt);font:inherit;font-size:12.5px;padding:9px 12px;outline:none;
+  }
+  .share-link:focus{border-color:var(--accent)}
+  .share-note{margin-top:9px;font-size:11.5px;color:var(--dimmer);line-height:1.5}
+  .share-note b{color:var(--gold);letter-spacing:.06em}
+
   /* ---------- phase heading ---------- */
   .phase-head{
     display:flex;align-items:center;gap:12px;margin:30px 0 14px;
@@ -336,9 +363,10 @@
       <button class="tab" data-view="stats">Stats</button>
     </div>
     <div class="names">
-      <label class="namepill"><span class="dot" style="background:var(--a)"></span><input id="nameA" maxlength="12" spellcheck="false"></label>
-      <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" maxlength="12" spellcheck="false"></label>
+      <label class="namepill"><span class="dot" style="background:var(--a)"></span><input id="nameA" class="nameinput" maxlength="12" spellcheck="false"></label>
+      <label class="namepill"><span class="dot" style="background:var(--b)"></span><input id="nameB" class="nameinput" maxlength="12" spellcheck="false"></label>
     </div>
+    <div class="syncpill local" id="syncPill"><i></i><span>Local only</span></div>
     <div class="spacer"></div>
     <select class="ctrl" id="universeSel">
       <option value="all">All universes</option>
@@ -369,8 +397,11 @@
   <div id="view-leaderboard" class="hide"></div>
   <div id="view-stats" class="hide"></div>
 
+  <div id="sharebox"></div>
+
   <div class="footer">
-    <span>Saved automatically in this browser.</span>
+    <span id="footNote">Saved automatically in this browser.</span>
+    <button class="ctrl" id="shareBtn" style="padding:6px 11px;font-size:12px">Share with someone</button>
     <button class="ctrl" id="exportBtn" style="padding:6px 11px;font-size:12px">Export backup</button>
     <button class="ctrl" id="importBtn" style="padding:6px 11px;font-size:12px">Import backup</button>
     <button class="ctrl" id="resetBtn" style="padding:6px 11px;font-size:12px">Reset all</button>
@@ -541,21 +572,67 @@ const DOOMSDAY = new Date(2026, 11, 18); // Dec 18, 2026
 const KEY = "mcu-doomsday-tracker-v1";
 const blank = () => ({ names:{a:"Me", b:"Her"}, scores:{}, watched:{}, order:"release", filter:"all", universe:"all", format:"all" });
 
+/* ---------- shared board ----------
+   With no room in the URL this behaves exactly as before: everything lives in
+   localStorage on this one device. With #r=CODE it mirrors a room on the
+   server. Edits apply locally first so the UI never waits on the network, then
+   go out as one small op. Polling pulls in whatever the other person did. */
+const ROOM = (location.hash.match(/[#&]r=([A-Za-z0-9-]{8,9})/) || [])[1] || null;
+const SYNC = { room: ROOM, status: ROOM ? "connecting" : "local", pulling: false, flushing: false, queue: [] };
+const POLL_MS = 8000;
+
+const cacheKey = () => SYNC.room ? `${KEY}:room:${SYNC.room}` : KEY;
+
 let S;
-try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); }
+try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(cacheKey()) || "{}")); }
 catch(e){ S = blank(); }
 S.names  = Object.assign({a:"Me",b:"Her"}, S.names||{});
 S.scores = S.scores||{}; S.watched = S.watched||{}; S.universe = S.universe||"all"; S.format = S.format||"all";
 
-const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+/* localStorage is the source of truth when local, a fast-paint cache when shared */
+const save = () => { try { localStorage.setItem(cacheKey(), JSON.stringify(S)); } catch(e){} };
+
+/* Edits queue up and drain to the server in order. Anything that fails to send
+   stays queued, and pull() refuses to run while the queue is non-empty, so a
+   dropped connection can never let a poll overwrite work you have not sent. */
+const MAX_QUEUE = 500;
+
+function push(...ops){
+  if (!SYNC.room) return;
+  SYNC.queue.push(...ops);
+  if (SYNC.queue.length > MAX_QUEUE) SYNC.queue.splice(0, SYNC.queue.length - MAX_QUEUE);
+  return flush();
+}
+
+async function flush(){
+  if (!SYNC.room || SYNC.flushing || !SYNC.queue.length) return;
+  SYNC.flushing = true;
+  const batch = SYNC.queue.slice();
+  try{
+    const res = await fetch("/api/op", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ code: SYNC.room, ops: batch })
+    });
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || res.status);
+    SYNC.queue.splice(0, batch.length);   // only drop what this call actually sent
+    setStatus("shared");
+  }catch(err){
+    console.warn("sync failed, will retry", err);
+    setStatus("error");
+  }finally{
+    SYNC.flushing = false;
+  }
+}
 
 const getScore = (id,who) => (S.scores[id]||{})[who] ?? null;
 const setScore = (id,who,v) => {
   S.scores[id] = S.scores[id]||{};
-  if (S.scores[id][who] === v) delete S.scores[id][who]; // click same pip to clear
+  const cleared = S.scores[id][who] === v;
+  if (cleared) delete S.scores[id][who];   // click same pip to clear
   else S.scores[id][who] = v;
   if (Object.keys(S.scores[id]).length) S.watched[id] = true;
   save(); render();
+  push(cleared ? {t:"score", id, who, v:null} : {t:"score", id, who, v});
 };
 const combo = id => {
   const a = getScore(id,"a"), b = getScore(id,"b");
@@ -875,8 +952,20 @@ function renderHeader(){
   }
 }
 
+/* the two name fields are the only inputs not rebuilt by render(), so keep
+   them in step with state, but never fight whoever is currently typing */
+function syncNameInputs(){
+  for (const who of ["a","b"]){
+    const inp = $("#name" + who.toUpperCase());
+    if (inp && inp !== document.activeElement && inp.value !== S.names[who]) {
+      inp.value = S.names[who];
+    }
+  }
+}
+
 function render(){
   renderHeader();
+  syncNameInputs();
   if (VIEW==="movies") renderMovies();
   else if (VIEW==="leaderboard") renderLeaderboard();
   else renderStats();
@@ -895,7 +984,9 @@ document.addEventListener("click", e => {
   if (wb){
     const id = wb.dataset.watch;
     S.watched[id] = !S.watched[id];
-    save(); render(); return;
+    save(); render();
+    push({t:"watch", id, v: !!S.watched[id]});
+    return;
   }
 
   const tab = e.target.closest(".tab");
@@ -916,7 +1007,13 @@ $("#filterSel").addEventListener("change", e => { S.filter = e.target.value; sav
 ["a","b"].forEach(who=>{
   const inp = $("#name"+who.toUpperCase());
   inp.value = S.names[who];
-  inp.addEventListener("input", () => { S.names[who] = inp.value || (who==="a"?"Me":"Her"); save(); render(); });
+  let nameTimer;
+  inp.addEventListener("input", () => {
+    S.names[who] = inp.value || (who==="a"?"Me":"Her");
+    save(); render();
+    clearTimeout(nameTimer);                       // one op per pause, not per keystroke
+    nameTimer = setTimeout(() => push({t:"name", who, v:S.names[who]}), 500);
+  });
 });
 
 $("#exportBtn").addEventListener("click", ()=>{
@@ -946,13 +1043,127 @@ $("#importFile").addEventListener("change", e=>{
   e.target.value = "";
 });
 $("#resetBtn").addEventListener("click", ()=>{
-  if(!confirm("Erase all watch marks and scores? This can't be undone.")) return;
-  S = blank(); save();
+  if(!confirm(SYNC.room
+      ? "Erase all watch marks and scores for everyone on this shared board? This can't be undone."
+      : "Erase all watch marks and scores? This can't be undone.")) return;
+  const keep = SYNC.room ? {names:S.names} : {};
+  S = Object.assign(blank(), keep); save();
+  push({t:"reset"});
   $("#nameA").value = S.names.a; $("#nameB").value = S.names.b;
   $("#orderSel").value = S.order; $("#filterSel").value = S.filter;
   $("#universeSel").value = S.universe; $("#formatSel").value = S.format;
   render();
 });
+
+/* ============================================================
+   SHARED BOARD
+   ============================================================ */
+function setStatus(next){
+  SYNC.status = next;
+  const el = $("#syncPill");
+  if (!el) return;
+  const label = {
+    local:      ["Local only",   "This device only"],
+    connecting: ["Connecting",   "Loading the shared board"],
+    shared:     ["Shared",       "Synced with everyone on this link"],
+    error:      ["Not synced",   "Could not reach the server, retrying"],
+  }[next] || ["", ""];
+  el.className = "syncpill " + next;
+  el.title = label[1];
+  el.querySelector("span").textContent = label[0];
+}
+
+/* Server is authoritative for scores, names and watch marks. The view options
+   (order, filters) stay personal, so they are never sent or overwritten. */
+async function pull(){
+  if (!SYNC.room || SYNC.pulling) return;
+  if (SYNC.queue.length){
+    await flush();
+    if (SYNC.queue.length) return;   // still unsent: keep local edits on screen
+  }
+  SYNC.pulling = true;
+  try{
+    const res = await fetch(`/api/room?code=${encodeURIComponent(SYNC.room)}`);
+    if (res.status === 404){
+      setStatus("error");
+      alert("That shared board no longer exists. You are back on a local board.");
+      leaveRoom();
+      return;
+    }
+    if (!res.ok) throw new Error(res.status);
+    const { state } = await res.json();
+    const focused = document.activeElement;
+    const typingName = focused && focused.classList.contains("nameinput");
+    if (!typingName) S.names = state.names;         // don't yank the field mid-edit
+    S.scores  = state.scores;
+    S.watched = state.watched;
+    save(); render();
+    setStatus("shared");
+  }catch(err){
+    console.warn("pull failed", err);
+    setStatus("error");
+  }finally{
+    SYNC.pulling = false;
+  }
+}
+
+function shareURL(code){
+  return `${location.origin}${location.pathname}#r=${code}`;
+}
+
+async function createRoom(){
+  const btn = $("#shareBtn");
+  btn.disabled = true; btn.textContent = "Creating...";
+  try{
+    const res = await fetch("/api/room", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ state: {names:S.names, scores:S.scores, watched:S.watched} })
+    });
+    if (res.status === 503){
+      alert("Sharing is not set up on this deployment yet. The site owner needs to add a Redis integration in Vercel.");
+      return;
+    }
+    if (!res.ok) throw new Error(res.status);
+    const { code } = await res.json();
+    location.hash = `r=${code}`;   // reload picks the room up cleanly
+    location.reload();
+  }catch(err){
+    console.error(err);
+    alert("Could not create a shared board. Check your connection and try again.");
+  }finally{
+    btn.disabled = false; btn.textContent = "Share with someone";
+  }
+}
+
+function leaveRoom(){
+  history.replaceState(null, "", location.pathname);
+  location.reload();
+}
+
+function renderShare(){
+  const box = $("#sharebox");
+  if (SYNC.room){
+    box.innerHTML = `
+      <div class="share-row">
+        <input id="shareLink" class="share-link" readonly value="${esc(shareURL(SYNC.room))}">
+        <button class="ctrl" id="copyBtn">Copy link</button>
+        <button class="ctrl" id="leaveBtn">Stop sharing</button>
+      </div>
+      <div class="share-note">Anyone with this link can see and change these scores. Board code <b>${esc(SYNC.room)}</b>.</div>`;
+    $("#copyBtn").addEventListener("click", async () => {
+      const input = $("#shareLink");
+      input.select();
+      try { await navigator.clipboard.writeText(input.value); }
+      catch(e){ document.execCommand("copy"); }
+      const b = $("#copyBtn"); b.textContent = "Copied"; setTimeout(()=>b.textContent="Copy link", 1500);
+    });
+    $("#leaveBtn").addEventListener("click", () => {
+      if (confirm("Stop syncing on this device? The shared board keeps existing, and this link will bring you back.")) leaveRoom();
+    });
+  } else {
+    box.innerHTML = "";
+  }
+}
 
 /* boot */
 $("#orderSel").value = S.order;
@@ -961,6 +1172,22 @@ $("#universeSel").value = S.universe;
 $("#formatSel").value = S.format;
 render();
 setInterval(renderHeader, 60000);
+
+$("#shareBtn").addEventListener("click", createRoom);
+renderShare();
+setStatus(SYNC.status);
+
+if (SYNC.room){
+  $("#shareBtn").style.display = "none";
+  $("#footNote").textContent = "Shared board, synced for everyone with the link.";
+  pull();
+  setInterval(pull, POLL_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
+  window.addEventListener("online", pull);
+  window.addEventListener("beforeunload", e => {
+    if (SYNC.queue.length){ e.preventDefault(); e.returnValue = ""; }
+  });
+}
 </script>
 </body>
 </html>

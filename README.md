@@ -25,8 +25,51 @@ Spider-Man, and Marvel on Netflix.
 
 Open `index.html` in any browser. That is the whole thing.
 
-Scores are saved to `localStorage`, which means they live in **one browser on
-one device**. Use the Export button to back them up or move them.
+## Shared boards
+
+By default the app is local: scores live in `localStorage`, in one browser on
+one device. **Share with someone** creates a shared board, seeds it with your
+current scores, and gives you a link like:
+
+```
+https://your-site.vercel.app/#r=39XJ-X3AV
+```
+
+Anyone who opens that link scores into the same board from any device. Edits
+apply locally straight away, then sync; the pill in the toolbar shows
+`Shared`, or `Not synced` if the connection drops. Edits made while offline
+queue up and send when you are back, and a poll will never overwrite work that
+has not been sent yet.
+
+There is no login. **Anyone with the link can read and change that board**, so
+treat it like a shared document. Boards expire after 400 days untouched, and
+every edit refreshes that.
+
+### Setting up sharing on Vercel
+
+Sharing needs a Redis instance. Without one the site still works fine in local
+mode, and the share button explains that it is unconfigured.
+
+1. In the Vercel dashboard open your project, then **Storage**.
+2. Add a **Redis** database (the Upstash integration under the Marketplace tab).
+3. Connect it to the project and redeploy.
+
+The integration sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically.
+`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are read as a fallback,
+so a direct Upstash account works too. The free tier is far more than this
+needs.
+
+### API
+
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/api/room` | `POST` | Create a board, seeded from the posted state |
+| `/api/room?code=…` | `GET` | Load a board |
+| `/api/op` | `POST` | Apply edits: `score`, `watch`, `name`, `reset` |
+
+Each board is three Redis hashes, with one field per person per title. Every
+edit is a single atomic `HSET`/`HDEL`, so two people scoring at the same moment
+cannot clobber each other and no merge step is needed.
 
 ## Posters
 
